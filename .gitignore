@@ -1,6 +1,55 @@
-﻿__pycache__/
+﻿### --- PYTHON & DATA SCIENCE --- ###
+__pycache__/
 *.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Môi trường ảo (Virtual Environments)
+venv/
 .venv/
 env/
+ENV/
+bin/
+lib/
+
+# Dữ liệu & Model (Tránh push file nặng)
+*.csv
+*.json
+*.parquet
+*.pickle
+*.h5
+*.model
+# Nếu file data mẫu, hãy dùng: !data_sample.csv
+
+
+### --- CẤU HÌNH & BẢO MẬT (IMPORTANT!) --- ###
+.env
+*.log
+config.ini
+secrets.json
+
+
+### --- IDE & TOOLS --- ###
+# PyCharm
 .idea/
+
+# VS Code
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+*.code-workspace
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
+
+### --- LATEX --- ###
+*.aux
+*.fdb_latexmk
+*.fls
+*.gz
+*.log
+*.pdf
+*.toc
