@@ -29,6 +29,7 @@ class CryptoGui:
         menus = [
             ("🏠 Giới thiệu", self.show_welcome),
             ("🔒 Hệ mật Caesar", lambda: self.show_crypto_ui("Caesar")),
+            ("🔐 Hệ mật Vigenère", lambda: self.show_crypto_ui("Vigenère")), # Thêm dòng này
             ("🔑 Hệ mật RSA", lambda: self.show_crypto_ui("RSA")),
             ("📊 Phân tích dữ liệu", lambda: self.show_analysis_ui()),
             ("🎯 Thám mã (Attack)", lambda: self.show_crypto_ui("Thám mã"))
@@ -58,55 +59,122 @@ class CryptoGui:
         ctk.CTkLabel(self.main_view, text=info, font=("Segoe UI", 14), text_color="#495057").pack()
 
     def show_crypto_ui(self, name):
-        """Giao diện Engine với Console Log màu đen đặc trưng"""
         self.clear_main_view()
         
-        # Chia layout Trái - Phải
+        # Layout chia 2 cột: Thao tác | Log
         self.main_view.grid_columnconfigure(0, weight=3)
         self.main_view.grid_columnconfigure(1, weight=2)
         
-        # Khu vực thao tác (Bên trái)
         left_panel = ctk.CTkFrame(self.main_view, fg_color="transparent")
         left_panel.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         
         ctk.CTkLabel(left_panel, text=f"Hệ mật: {name}", font=("Segoe UI", 22, "bold"), text_color="#1f538d").pack(anchor="w")
         
-        self.input_text = ctk.CTkTextbox(left_panel, height=150, font=("Segoe UI", 13))
-        self.input_text.pack(fill="x", pady=15)
+        # 1. Input Text
+        ctk.CTkLabel(left_panel, text="Dữ liệu đầu vào:").pack(anchor="w", pady=(10, 0))
+        self.input_text = ctk.CTkTextbox(left_panel, height=120, font=("Segoe UI", 13))
+        self.input_text.pack(fill="x", pady=5)
+
+        # 2. KHU VỰC THAM SỐ BIẾN ĐỔI
+        param_frame = ctk.CTkFrame(left_panel, fg_color="#E9ECEF", corner_radius=10)
+        param_frame.pack(fill="x", pady=10, ipady=5)
         
+        self.params = {} 
+        if name == "Caesar":
+            self._add_param_field(param_frame, "Độ dịch (Shift):", "shift_key", "Nhập số (vd: 3)")
+        elif name == "Vigenère":
+            self._add_param_field(param_frame, "Từ khóa (Keyword):", "vigenere_key", "Nhập chữ (vd: FPT)")
+        elif name == "RSA":
+            self._add_param_field(param_frame, "Số p:", "p_key", "Số nguyên tố p")
+            self._add_param_field(param_frame, "Số q:", "q_key", "Số nguyên tố q")
+        else:
+            ctk.CTkLabel(param_frame, text="Thuật toán này không cần tham số phụ.").pack()
+
+        # 3. Nút bấm
         btn_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
         btn_frame.pack(pady=10)
         ctk.CTkButton(btn_frame, text="MÃ HÓA", command=lambda: self._animate_process(name, "encrypt")).grid(row=0, column=0, padx=10)
         ctk.CTkButton(btn_frame, text="GIẢI MÃ", fg_color="#912c2c", command=lambda: self._animate_process(name, "decrypt")).grid(row=0, column=1, padx=10)
 
-        self.output_text = ctk.CTkTextbox(left_panel, height=150, font=("Segoe UI", 13))
-        self.output_text.pack(fill="x", pady=15)
+        # 4. Kết quả
+        ctk.CTkLabel(left_panel, text="Kết quả:").pack(anchor="w", pady=(10, 0))
+        self.output_text = ctk.CTkTextbox(left_panel, height=120, font=("Segoe UI", 13))
+        self.output_text.pack(fill="x", pady=5)
 
-        # Khu vực Log toán học (Bên phải - Console)
+        # --- Cột phải: Log toán học ---
+        self._create_log_panel()
+
+    def _add_param_field(self, parent, label_text, key_name, placeholder):
+        """Hàm phụ để tạo nhanh các dòng nhập tham số"""
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", padx=15, pady=2)
+        ctk.CTkLabel(row, text=label_text, width=120, anchor="w").pack(side="left")
+        entry = ctk.CTkEntry(row, placeholder_text=placeholder)
+        entry.pack(side="left", fill="x", expand=True)
+        self.params[key_name] = entry # Lưu lại để truy xuất
+
+    def _create_log_panel(self):
+        """Tạo khung log màu đen bên phải"""
         right_panel = ctk.CTkFrame(self.main_view, fg_color="#1a1a1a", corner_radius=15)
         right_panel.grid(row=0, column=1, sticky="nsew", padx=(0, 20), pady=20)
-        
         ctk.CTkLabel(right_panel, text="PROCESSOR LOG", font=("Consolas", 12, "bold"), text_color="#00FF00").pack(pady=10)
         self.log_box = ctk.CTkTextbox(right_panel, fg_color="black", text_color="#00FF00", font=("Consolas", 11))
         self.log_box.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
+        
     def _animate_process(self, algo, action):
-        self.log_box.delete("1.0", "end")
-        self.log_box.insert("end", f"> Khởi chạy engine {algo}...\n")
-        self.master.update()
-        time.sleep(0.2)
-        
-        if algo == "RSA":
-            self.log_box.insert("end", "> Tính toán khóa công khai (e, n)...\n")
-            self.log_box.insert("end", "> Thực hiện lũy thừa modulo M^e mod n...\n")
-        elif algo == "Caesar":
-            self.log_box.insert("end", "> Áp dụng độ dời trên bảng chữ cái...\n")
-            
-        self.log_box.insert("end", "> Hoàn tất.\n")
-        
-        # Gọi hàm xử lý từ MainApp
         data = self.input_text.get("1.0", "end-1c")
-        result = self.master.handle_encrypt(algo, data, None) if action == "encrypt" else self.master.handle_decrypt(algo, data, None)
+        
+        # Lấy tham số tùy theo thuật toán
+        param_value = ""
+        if algo == "Caesar":
+            param_value = self.params["shift_key"].get()
+        elif algo == "Vigenère":
+            param_value = self.params["vigenere_key"].get()
+        elif algo == "RSA":
+            # Ví dụ lấy p, q rồi ghép lại hoặc xử lý riêng
+            p = self.params["p_key"].get()
+            q = self.params["q_key"].get()
+            param_value = f"{p},{q}"
+
+        # Cập nhật LOG cho sinh động
+        self.log_box.delete("1.0", "end")
+        self.log_box.insert("end", f"> Khởi chạy engine: {algo}\n")
+        if algo == "Vigenère":
+            self.log_box.insert("end", f"> Sử dụng từ khóa: '{param_value}'\n")
+            self.log_box.insert("end", "> Đang tạo bảng Vigenère Square...\n")
+            self.log_box.insert("end", "> Áp dụng phép cộng Modulo 26 theo keyword...\n")
+        
+        self.log_box.insert("end", "> Hoàn tất.\n")
+
+        # Gọi xuống main.py
+        if action == "encrypt":
+            result = self.master.handle_encrypt(algo, data, param_value)
+        else:
+            result = self.master.handle_decrypt(algo, data, param_value)
+            
+        self.output_text.delete("1.0", "end")
+        self.output_text.insert("1.0", result)
+        # Lấy dữ liệu văn bản
+        data = self.input_text.get("1.0", "end-1c")
+        
+        # Lấy tham số tương ứng
+        key_value = ""
+        if algo == "Caesar":
+            key_value = self.params["shift_key"].get()
+        elif algo == "Vigenère":
+            key_value = self.params["vigenere_key"].get()
+        # Đối với RSA, bạn có thể lấy p = self.params["p_key"].get(),...
+
+        self.log_box.delete("1.0", "end")
+        self.log_box.insert("end", f"> Engine: {algo}\n> Action: {action.upper()}\n")
+        self.log_box.insert("end", f"> Parameter: {key_value}\n")
+        
+        # Gửi sang main.py xử lý (truyền thêm key_value)
+        if action == "encrypt":
+            result = self.master.handle_encrypt(algo, data, key_value)
+        else:
+            result = self.master.handle_decrypt(algo, data, key_value)
+            
         self.output_text.delete("1.0", "end")
         self.output_text.insert("1.0", result)
 
