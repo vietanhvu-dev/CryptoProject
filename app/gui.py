@@ -28,6 +28,11 @@ class CryptoGui:
             ("🔑 Hệ mật RSA", lambda: self.show_crypto_ui("RSA")),
             ("🔑 Thám mã", lambda: self.show_crypto_ui("RSA"))
         ]
+    def show_attack_ui(self, name):
+        if self.current_view:
+            self.current_view.destroy()
+        self.current_view = AttackView(self.container, algo_name=name, master_app=self.master)
+        self.current_view.pack(fill="both", expand=True, padx=20, pady=20)
         for name, cmd in menus:
             ctk.CTkButton(self.sidebar, text=name, fg_color="transparent", text_color="#333333",
                           anchor="w", command=cmd).pack(fill="x", padx=15, pady=5)
