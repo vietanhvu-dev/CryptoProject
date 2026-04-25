@@ -1,59 +1,81 @@
-import customtkinter as ctk
-import time
+import streamlit as st
 from .home_view import HomeView
 from .crypto_view import CryptoView
 from .attack_view import AttackView
 
 class CryptoGui:
     def __init__(self, master):
+        # master ở đây trong ngữ cảnh Web sẽ là đối tượng chứa các hàm xử lý logic (handle_encrypt...)
         self.master = master
         
-        # Sidebar
-        self.sidebar = ctk.CTkFrame(self.master, width=240, fg_color="#F8F9FA", corner_radius=0)
-        self.sidebar.pack(side="left", fill="y")
-        ctk.CTkLabel(self.sidebar, text="🛡️ CRYPTO ENGINE", font=("Segoe UI", 20, "bold")).pack(pady=35)
+        # Streamlit không có khái niệm self.container.pack()
+        # Chúng ta dùng session_state để giả lập việc lưu trữ "current_view"
+        if "view_name" not in st.session_state:
+            st.session_state.view_name = "welcome"
+        if "algo_name" not in st.session_state:
+            st.session_state.algo_name = ""
 
-        # Nơi chứa nội dung thay đổi
-        self.container = ctk.CTkFrame(self.master, fg_color="transparent")
-        self.container.pack(side="right", fill="both", expand=True)
-
-        self.current_view = None
         self.create_menu()
-        self.show_welcome()
+        self.render_current_view()
 
     def create_menu(self):
-        menus = [
-            ("🏠 Giới thiệu", self.show_welcome),
-            ("🔒 Hệ mật Caesar", lambda: self.show_crypto_ui("Caesar")),
-            ("🔐 Hệ mật Vigenère", lambda: self.show_crypto_ui("Vigenère")),
-            ("🔑 Hệ mật RSA", lambda: self.show_crypto_ui("RSA")),
-            ("🔑 Thám mã", lambda: self.show_attack_ui("Thám mã"))
-        ]
-        
-        # PHẢI có vòng lặp này ở ĐÂY để render các nút bấm lên Sidebar
-        for name, cmd in menus:
-            ctk.CTkButton(
-                self.sidebar, 
-                text=name, 
-                fg_color="transparent", 
-                text_color="#333333",
-                hover_color="#E9ECEF", # Thêm hover cho đẹp
-                anchor="w", 
-                command=cmd
-            ).pack(fill="x", padx=15, pady=5)
+        # Sidebar của Streamlit
+        with st.sidebar:
+            st.markdown("## 🛡️ CRYPTO ENGINE")
+            st.write("---")
+            
+            # Thay vì dùng Button với command, ta dùng nút bấm Streamlit 
+            # để cập nhật trạng thái view
+            if st.button("🏠 Giới thiệu", use_container_width=True, icon="🏠"):
+                self.show_welcome()
+            
+            if st.button("🔒 Hệ mật Caesar", use_container_width=True, icon="🔒"):
+                self.show_crypto_ui("Caesar")
+                
+            if st.button("🔐 Hệ mật Vigenère", use_container_width=True, icon="🔐"):
+                self.show_crypto_ui("Vigenère")
+                
+            if st.button("🔑 Hệ mật RSA", use_container_width=True, icon="🔑"):
+                self.show_crypto_ui("RSA")
+                
+            if st.button("⚡ Thám mã", use_container_width=True, icon="⚡"):
+                self.show_attack_ui("Thám mã")
 
     def show_attack_ui(self, name):
-        if self.current_view:
-            self.current_view.destroy()
-        # Đảm bảo AttackView có kế thừa từ ctk.CTkFrame
-        self.current_view = AttackView(self.container, algo_name=name, master_app=self.master)
-        self.current_view.pack(fill="both", expand=True, padx=20, pady=20)
+        # Thay vì .destroy(), ta chỉ cần cập nhật trạng thái để Streamlit vẽ lại
+        st.session_state.view_name = "attack"
+        st.session_state.algo_name = name
+        st.rerun()
+
     def show_welcome(self):
-        if self.current_view: self.current_view.destroy()
-        self.current_view = HomeView(self.container)
-        self.current_view.pack(fill="both", expand=True, padx=20, pady=20)
+        st.session_state.view_name = "welcome"
+        st.session_state.algo_name = ""
+        st.rerun()
 
     def show_crypto_ui(self, name):
-        if self.current_view: self.current_view.destroy()
-        self.current_view = CryptoView(self.container, algo_name=name, master_app=self.master)
-        self.current_view.pack(fill="both", expand=True, padx=20, pady=20)
+        st.session_state.view_name = "crypto"
+        st.session_state.algo_name = name
+        st.rerun()
+
+    def render_current_view(self):
+        """
+        Phương thức này đóng vai trò thay thế cho self.container.
+        Nó sẽ kiểm tra trạng thái và gọi hàm render từ các View tương ứng.
+        """
+        view = st.session_state.view_name
+        name = st.session_state.algo_name
+
+        if view == "welcome":
+            # Giả định HomeView của bạn có hàm render() đã được chuyển đổi
+            home = HomeView(None) # master = None hoặc self.master
+            home.render() 
+            
+        elif view == "crypto":
+            # Khởi tạo và chạy CryptoView
+            crypto = CryptoView(None, algo_name=name, master_app=self.master)
+            crypto.render() # Bạn sẽ copy code CryptoView đã chuyển đổi vào hàm render này
+            
+        elif view == "attack":
+            # Khởi tạo và chạy AttackView
+            attack = AttackView(None, algo_name=name, master_app=self.master)
+            attack.render()
