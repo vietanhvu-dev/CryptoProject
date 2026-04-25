@@ -1,250 +1,190 @@
-import customtkinter as ctk
-import threading
+import streamlit as st
+import os, io
+# Giữ lại các core logic của bạn
 from .cryptanalysis_core import CryptanalysisCore
 from core.attack.caesar_core import CaesarCracker
-from tkinter import filedialog
-import os
 
-class AttackView(ctk.CTkFrame):
+class AttackView: # Phải có Class này
     def __init__(self, master, algo_name, master_app, **kwargs):
-        super().__init__(master, **kwargs)
-        self.core = CryptanalysisCore()
-        self.caesar_cracker = CaesarCracker()
-        self.master_app = master_app
+        self.master = master
         self.algo_name = algo_name
-        self._setup_ui()
-    def _setup_ui(self):
-        # 1. Cấu hình lưới chính cho AttackView
-        self.grid_columnconfigure(0, weight=3) # Vùng làm việc chính
-        self.grid_columnconfigure(1, weight=1) # Vùng Log
-        self.grid_rowconfigure(0, weight=1)    # Nội dung co giãn
-        self.grid_rowconfigure(1, weight=0)    # Thanh công cụ cố định
+        self.master_app = master_app
 
-        # --- LEFT PANEL (Vùng làm việc) ---
-        left_panel = ctk.CTkFrame(self, fg_color="transparent")
-        left_panel.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
-
-        # A. Header: Tiêu đề + Nút Upload
-        header_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 10))
-
-        ctk.CTkLabel(header_frame, text=f"📊 PHÂN TÍCH: {self.algo_name.upper()}", 
-                     font=("Segoe UI", 22, "bold"), text_color="#d9534f").pack(side="left")
+    def render(self):
+        # --- KHỞI TẠO CORE ---
+        # Sử dụng st.cache_resource để không phải load lại class mỗi lần F5
+        if 'core' not in st.session_state:
+            st.session_state.core = CryptanalysisCore()
+        if 'caesar_cracker' not in st.session_state:
+            st.session_state.caesar_cracker = CaesarCracker()
         
-        self.btn_upload = ctk.CTkButton(header_frame, text="📁 Upload Cipher", width=120,
-                                         command=self.import_input_file, fg_color="#2f455c",
-                                         hover_color="#2c3e50")
-        self.btn_upload.pack(side="right")
+        # Biến lưu trữ kết quả tạm thời
+        if 'collected_results' not in st.session_state:
+            st.session_state.collected_results = []
+        if 'logs' not in st.session_state:
+            st.session_state.logs = []
 
-        # B. Input Section
-        ctk.CTkLabel(left_panel, text="Bản mã đầu vào (Ciphertext):", font=("Segoe UI", 13)).pack(anchor="w")
-        self.input_text = ctk.CTkTextbox(left_panel, height=120, border_width=1)
-        self.input_text.pack(fill="x", pady=(5, 15))
+        # --- UI HEADER ---
+        st.markdown(
+            f"<h1 style='color: #d9534f; margin-bottom: 0px; padding-bottom: 0px;'>📊 PHÂN TÍCH: {self.algo_name.upper()}</h1>", 
+            unsafe_allow_html=True
+        )
 
-        # C. Action Button
-        # Thay vì command=self.execute_logic
-        self.btn_attack = ctk.CTkButton(left_panel, text="⚡ START CRYPTANALYSIS", 
-                                 font=("Segoe UI", 15, "bold"), height=45,
-                                 fg_color="#d9534f", hover_color="#c9302c",
-                                 command=self.start_attack_thread) # Gọi hàm bọc thread
-        self.btn_attack.pack(fill="x", pady=(0, 15))
+        left_col, right_col = st.columns([2, 2])
 
-        # D. Output Section
-        ctk.CTkLabel(left_panel, text="Kết quả trích xuất (Top Candidates):", font=("Segoe UI", 13)).pack(anchor="w")
-        self.output_text = ctk.CTkTextbox(left_panel, fg_color="#F5F5F5", text_color="#000000", font=("Consolas", 12))
-        self.output_text.pack(fill="both", expand=True)
+        with left_col:
+            # A. Input Section
+            uploaded_file = st.file_uploader("📁 Upload Cipher File", type=['txt'])
+            
+            # Nếu có file upload, ưu tiên lấy nội dung file, không thì cho nhập tay
+            default_text = ""
+            if uploaded_file is not None:
+                default_text = uploaded_file.read().decode("utf-8")
+            
+            input_ciphertext = st.text_area("Bản mã đầu vào (Ciphertext):", 
+                                            value=default_text, 
+                                            height=150)
+            st.write(f"Dữ liệu nhận được: {input_ciphertext}")
 
-        # --- RIGHT PANEL (Nhật ký Log) ---
-        right_panel = ctk.CTkFrame(self, fg_color="#1a1a1a", corner_radius=15)
-        right_panel.grid(row=0, column=1, sticky="nsew", padx=(0, 20), pady=20)
+            # B. Action Button
+            if st.button("⚡ START CRYPTANALYSIS", use_container_width=True, type="primary"):
+               self.execute_logic_st(input_ciphertext)
+               st.divider()
+
+            # C. Output Section
+            if st.session_state.collected_results:
+                self.display_final_output_st() 
+            else:
+                st.info("Chưa có kết quả phân tích.")
+        with right_col:
+            st.markdown("### 🖥️ SYSTEM LOG")
+            log_content = "\n".join(st.session_state.logs) if st.session_state.logs else "Ready..."
+            
+            # Sử dụng Markdown với HTML/CSS để đổi màu
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: #000000; 
+                    color: #00FF00; 
+                    padding: 10px; 
+                    border-radius: 5px; 
+                    font-family: 'Courier New', Courier, monospace;
+                    height: 400px;
+                    overflow-y: auto;
+                    white-space: pre-wrap;
+                    border: 1px solid #333;
+                ">
+                {log_content}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # --- BOTTOM CONTROL BAR ---
+        st.divider()
+        c1, c2, c3 = st.columns([2, 2, 2])
         
-        ctk.CTkLabel(right_panel, text="SYSTEM LOG", font=("Consolas", 12, "bold")).pack(pady=10)
-        self.log_box = ctk.CTkTextbox(right_panel, fg_color="black", text_color="#00FF00", font=("Consolas", 11))
-        self.log_box.pack(fill="both", expand=True, padx=10, pady=10)
+        with c1:
+            selected_key = st.text_input("🔑 Chọn Key tối ưu (ID):", placeholder="Ví dụ: 3")
         
-        # Tags cho màu sắc log
-        self.log_box.tag_config("highlight", foreground="#FF4444")
-        self.log_box.tag_config("normal", foreground="#00FF00")
+        with c2:
+            # 1. Lấy dữ liệu xuất (hàm này có thể trả về None)
+            final_output = self.handle_export_st(input_ciphertext, selected_key)
+            
+            # 2. CHỈ hiển thị nút download nếu có dữ liệu
+            if final_output is not None:
+                st.download_button(
+                    label="📥 Tải xuống (.txt)",
+                    data=final_output,
+                    file_name=f"cryptanalysis_{self.algo_name}.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+            else:
+                # Nếu chưa có dữ liệu, hiển thị nút bị vô hiệu hóa để tránh lỗi
+                st.info("Nhập Key để xuất file")
 
-        # --- BOTTOM CONTROL BAR (Thanh điều khiển xuất file) ---
-        # Sử dụng fg_color để tạo điểm nhấn cho thanh công cụ
-        self.control_frame = ctk.CTkFrame(self, fg_color="#B19999", height=60, corner_radius=0)
-        self.control_frame.grid(row=1, column=0, columnspan=2, sticky="ew")
+    # Giả định hàm on_result_received_st để gom kết quả
+    def on_result_received_st(self, data):
+        if "collected_results" in st.session_state:
+             st.session_state.collected_results.append(data)
+        # Tạo dòng log tương tự bản cũ
+        status = "KHỚP TỪ ĐIỂN" if data['score'] >= 15 else "Khả thi" if data['score'] >= 3 else "Nhiễu"
+        log_line = f"> [Key {data['key']:02d}] {data['text'][:15]}... | Score: {data['score']} | {status}"
+        st.session_state.logs.append(log_line)
 
-        # Gom nhóm các widget vào giữa thanh control bằng một inner frame
-        inner_control = ctk.CTkFrame(self.control_frame, fg_color="transparent")
-        inner_control.pack(expand=True)
+    def execute_logic_st(self, ciphertext):
+        if not ciphertext:
+            return
 
-        ctk.CTkLabel(inner_control, text="Chọn Key tối ưu:", font=("Segoe UI", 12)).pack(side="left", padx=10)
-        self.selected_key_entry = ctk.CTkEntry(inner_control, width=80, placeholder_text="ID...")
-        self.selected_key_entry.pack(side="left", padx=5)
-
-        self.btn_export = ctk.CTkButton(inner_control, text="📥 Tải xuống (.txt)", 
-                                         command=self.export_to_txt, fg_color="#2c3e50",
-                                         hover_color="#1a252f", width=150)
-        self.btn_export.pack(side="left", padx=15)
+        # Reset kết quả
+        st.session_state.collected_results = []
+        st.session_state.logs = ["> Bắt đầu phân tích..."]
         
-    def log(self, message):
-        # Hàm hỗ trợ ghi log an toàn từ Thread
-        self.after(0, lambda: self._internal_log(message))
+        # Thực hiện crack (Thay vì dùng thread, gọi trực tiếp tuần tự hoặc xử lý mảng)
+        with st.spinner("🚀 Đang thực hiện phá mã (Cryptanalysis)..."):
+            # Gọi trực tiếp core logic của bạn
+            st.session_state.caesar_cracker.crack_range(ciphertext, 1, 14, self.on_result_received_st)
+            st.session_state.caesar_cracker.crack_range(ciphertext, 14, 27, self.on_result_received_st)
+            # Sắp xếp kết quả theo Score giảm dần
+            st.session_state.collected_results.sort(key=lambda x: x['score'], reverse=True)
+            st.session_state.logs.append(f"Đã hoàn tất trích xuất kết quả.")
 
-    def _internal_log(self, message):
-        self.log_box.insert("end", f"> {message}\n")
-        self.log_box.see("end")
+        st.rerun()  # Cập nhật UI sau khi có kết quả mới
+    def display_final_output_st(self):
+        if not st.session_state.collected_results:
+            return
 
-    def start_attack_thread(self):
-        # Khởi chạy luồng chính để không treo UI khi tính toán IC
-        threading.Thread(target=self.execute_logic, daemon=True).start()
-
-    def on_result_received(self, data):
-        # Ghi nhận kết quả vào danh sách tổng để sau này sắp xếp Top 5
-        self.collected_results.append(data)
+        st.markdown("### 📋 Kết quả trích xuất (Top Candidates)")
         
-        # 1. TẠO THÔNG TIN LOG CHI TIẾT
-        key_info = f"Key {data['key']:02d}"
-        preview = f"'{data['text'][:15]}...'"
-        score_info = f"Score: {data['score']}"
-        
-        # Đánh giá trạng thái để chọn màu log
-        # Giả sử điểm > 15 là có khớp từ điển (do chúng ta cộng 15 điểm ở Core)
-        if data['score'] >= 15:
-            status = "KHỚP TỪ ĐIỂN"
-            tag = "highlight" # Màu đỏ
-        elif data['score'] >= 3:
-            status = "Khả thi"
-            tag = "highlight" # Hoặc màu cam nếu bạn cấu hình thêm tag
-        else:
-            status = "Nhiễu"
-            tag = "normal"    # Màu xanh
+        # Tạo header cho bảng giả lập giống giao diện cũ
+        output_lines = []
+        header = f"{'HẠNG':<8} | {'KEY':<6} | {'ĐIỂM':<6} | {'NỘI DUNG GIẢI MÃ'}"
+        output_lines.append(header)
+        output_lines.append("-" * 85)
 
-        log_line = f"> [{key_info}] {preview} | {score_info} | {status}\n"
-
-        # 2. ĐẨY VÀO LOG NGAY LẬP TỨC (Real-time)
-        self.after(0, lambda: self.log_box.insert("end", log_line, tag))
-        self.after(0, lambda: self.log_box.see("end"))
-
-    def execute_logic(self):
-        ciphertext = self.input_text.get("1.0", "end-1c").strip()
-        if not ciphertext: return
-
-        # UI updates an toàn từ thread
-        self.after(0, lambda: self.btn_attack.configure(state="disabled"))
-        self.after(0, lambda: self.output_text.delete("1.0", "end"))
-        
-        self.collected_results = []
-    
-        t1 = threading.Thread(target=self.caesar_cracker.crack_range, 
-                            args=(ciphertext, 1, 14, self.on_result_received))
-        t2 = threading.Thread(target=self.caesar_cracker.crack_range, 
-                            args=(ciphertext, 14, 27, self.on_result_received))
-        
-        t1.start()
-        t2.start()
-        
-        # Đợi các luồng hoàn thành (Lúc này an toàn vì execute_logic đang chạy trong threading.Thread)
-        t1.join()
-        t2.join()
-        
-        self.collected_results.sort(key=lambda x: x['score'], reverse=True)
-        self.after(0, self.display_final_output)
-
-    def display_final_output(self):
-        # Tiêu đề bảng
-        header = f"{'HẠNG':<8} | {'KEY':<6} | {'ĐIỂM':<6} | {'NỘI DUNG GIẢI MÃ'}\n"
-        self.output_text.insert("end", header)
-        self.output_text.insert("end", " " + "="*85 + "\n\n")
-        
         printed_count = 0
         last_score = -1
-        max_results = 5 # Giới hạn cứng 5 kết quả đầu tiên
+        max_results = 5
 
-        for i, res in enumerate(self.collected_results):
-            # Điều kiện dừng: 
-            # Nếu đã in đủ 5 cái VÀ điểm của thằng hiện tại thấp hơn thằng trước đó
+        for res in st.session_state.collected_results:
             if printed_count >= max_results and res['score'] < last_score:
                 break
             
-            # Chỉ in những kết quả có giá trị (Score > 0)
             if res['score'] > 0:
-                # Tính toán hạng (nếu bằng điểm thì cùng hạng)
-                if res['score'] != last_score:
-                    rank_display = f"#{printed_count + 1}"
-                else:
-                    rank_display = f"#{printed_count}" # Hoặc dùng " -" để chỉ đồng hạng
-                
-                rank_display = f"#{printed_count + 1}"
-                
-                # Highlight đặc biệt cho các kết quả khớp từ điển (Score cao)
-                is_reliable = " [TIN CẬY CAO]" if res['score'] > 15 else ""
-                
-                line = f"{rank_display:<8} | Key {res['key']:02d} | {res['score']:<6} | {res['text']}{is_reliable}\n"
-                
-                self.output_text.insert("end", line)
-                self.output_text.insert("end", " " + "-"*85 + "\n\n")
+                rank = f"#{printed_count + 1}"
+                is_reliable = " ✅ [TIN CẬY CAO]" if res['score'] > 15 else ""
+                line = f"{rank:<8} | Key {res['key']:02d} | {res['score']:<6} | {res['text']}{is_reliable}"
+                output_lines.append(line)
+                output_lines.append("-" * 85)
                 
                 last_score = res['score']
                 printed_count += 1
 
         if printed_count == 0:
-            self.output_text.insert("end", ">>> Không tìm thấy kết quả khả thi nào trong 26 trường hợp.\n")
+            st.error(">>> Không tìm thấy kết quả khả thi nào trong 26 trường hợp.")
         else:
-            self.log(f"Đã trích xuất {printed_count} kết quả tối ưu nhất.")
-            
-        self.btn_attack.configure(state="normal")
-        # ui/attack_view.py (trong display_final_output)
-    
-    def import_input_file(self):
-        from tkinter import filedialog
-        import os
-        file_path = filedialog.askopenfilename(filetypes=[("Text", "*.txt")])
-        if file_path:
-            with open(file_path, "r", encoding="utf-8") as f:
-                self.input_text.delete("1.0", "end")
-                self.input_text.insert("end", f.read())
-            self.log(f"Đã nạp: {os.path.basename(file_path)}")
+            # Hiển thị toàn bộ bảng trong một vùng code cho đẹp
+            st.code("\n".join(output_lines), language="text")
 
-    def export_to_txt(self):
-        from tkinter import filedialog
-        import os
+    def handle_export_st(self, ciphertext, selected_key_val):
+        if not ciphertext or selected_key_val == "":
+            st.error("Vui lòng nhập Ciphertext và chọn Key ID!")
+            return None
 
-        # 1. Lấy Key từ ô nhập liệu
         try:
-            key_val = int(self.selected_key_entry.get().strip())
+            key_val = int(selected_key_val)
+            decrypted_text = ""
+            for char in ciphertext:
+                if char.isalpha():
+                    start = ord('A') if char.isupper() else ord('a')
+                    decrypted_text += chr((ord(char) - start - key_val) % 26 + start)
+                else:
+                    decrypted_text += char
+            
+            # Chuẩn bị file nội dung để tải về (thay thế filedialog.asksaveasfilename)
+            final_content = f"--- KẾT QUẢ GIẢI MÃ (KEY: {key_val}) ---\n\n{decrypted_text}"
+            return final_content
         except ValueError:
-            self.log("Lỗi: Vui lòng nhập số Key hợp lệ vào ô ID!")
-            return
-
-        # 2. Lấy bản mã gốc từ ô Input
-        ciphertext = self.input_text.get("1.0", "end-1c").strip()
-        if not ciphertext:
-            self.log("Lỗi: Không có bản mã để giải mã!")
-            return
-
-        # 3. Thực hiện giải mã toàn bộ nội dung với Key đã chọn
-        # Bạn có thể dùng hàm decrypt của CaesarCracker nếu có, 
-        # hoặc viết nhanh logic ở đây:
-        decrypted_text = ""
-        for char in ciphertext:
-            if char.isalpha():
-                start = ord('A') if char.isupper() else ord('a')
-                # Caesar decrypt: (x - k) % 26
-                decrypted_text += chr((ord(char) - start - key_val) % 26 + start)
-            else:
-                decrypted_text += char
-
-        # 4. Mở hộp thoại lưu file (Mô phỏng Download)
-        f_path = filedialog.asksaveasfilename(
-            defaultextension=".txt", 
-            initialfile=f"decrypted_key_{key_val}.txt",
-            filetypes=[("Text files", "*.txt")]
-        )
-        
-        if f_path:
-            try:
-                with open(f_path, "w", encoding="utf-8") as f:
-                    f.write(f"--- KẾT QUẢ GIẢI MÃ (KEY: {key_val}) ---\n\n")
-                    f.write(decrypted_text)
-                self.log(f"Đã xuất bản dịch Key {key_val} thành công!")
-            except Exception as e:
-                self.log(f"Lỗi khi lưu file: {e}")
-    
+            st.error("Key ID phải là một con số!")
+            return None
