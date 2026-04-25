@@ -1,4 +1,4 @@
-import collections  # DÒNG NÀY ĐANG THIẾU DẪN ĐẾN LỖI
+import collections 
 import time
 import os
 
