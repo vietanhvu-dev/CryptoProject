@@ -38,5 +38,8 @@ D:.
 ## Sử dụng
 ```
 pip install -r requirements.txt
-python main.py
+streamlit run main.py
 ```
+
+## ⚖️ Legal & Privacy
+This project is for educational purposes only. Please refer to our [Disclaimer & Privacy Policy](SECURITY.md) and [License](LICENSE) for more details.
