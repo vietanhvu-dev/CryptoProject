@@ -1,7 +1,5 @@
 import streamlit as st
 import os, io
-# Giữ lại các core logic của bạn
-from .cryptanalysis_core import CryptanalysisCore
 from core.attack.caesar_core import CaesarCracker
 
 class AttackCaesar: # Phải có Class này
@@ -13,8 +11,6 @@ class AttackCaesar: # Phải có Class này
     def render(self):
         # --- KHỞI TẠO CORE ---
         # Sử dụng st.cache_resource để không phải load lại class mỗi lần F5
-        if 'core' not in st.session_state:
-            st.session_state.core = CryptanalysisCore()
         if 'caesar_cracker' not in st.session_state:
             st.session_state.caesar_cracker = CaesarCracker()
         
@@ -73,6 +69,12 @@ class AttackCaesar: # Phải có Class này
                 """,
                 unsafe_allow_html=True
             )
+            # Nút xóa Log bên dưới
+            st.write("") # Tạo khoảng cách nhỏ
+            if st.button("Xóa Log", use_container_width=True):
+                st.session_state.logs = []
+                st.session_state.current_result = ""
+                st.rerun()
 # --- BOTTOM CONTROL BAR ---
         st.divider()
         c1, c2, c3 = st.columns([1, 1, 1])
@@ -178,6 +180,7 @@ class AttackCaesar: # Phải có Class này
 
         # 5. Rerun để cập nhật UI
         st.rerun()
+        
 
     def display_final_output_st(self):
         # 1. Kiểm tra nếu chưa có kết quả thì thoát

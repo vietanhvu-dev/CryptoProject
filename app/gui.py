@@ -2,7 +2,7 @@ import streamlit as st
 from .home_view import HomeView
 from .crypto_view import CryptoView
 from app.attack_caesar import AttackCaesar
-from app.attack_vi import AttackVi
+from app.attack_vigenere import AttackVigenere
 
 class CryptoGui:
     def __init__(self, master):
@@ -42,7 +42,7 @@ class CryptoGui:
                 self.show_attack_caesar()
 
             if st.button("⚡ Thám mã Vigenère", use_container_width=True):
-                self.show_attack_vi()
+                self.show_attack_vigenere()
 
     # --- Các hàm điều hướng mới ---
     def show_attack_caesar(self):
@@ -50,9 +50,9 @@ class CryptoGui:
         st.session_state.algo_name = "Caesar"
         st.rerun()
 
-    def show_attack_vi(self):
-        st.session_state.view_name = "attack_vi"
-        st.session_state.algo_name = "Vigenère"
+    def show_attack_vigenere(self):
+        st.session_state.view_name = "attack_vigenere"
+        st.session_state.algo_name = "Vigenere"
         st.rerun()
 
     def show_welcome(self):
@@ -82,7 +82,7 @@ class CryptoGui:
             attack = AttackCaesar(None, algo_name=name, master_app=self.master)
             attack.render()
 
-        elif view == "attack_vi":
+        elif view == "attack_vigenere":
             # Tương tự cho Vigenère nếu class đó cũng yêu cầu algo_name
-            attack = AttackVi(None, algo_name=name, master_app=self.master)
+            attack = AttackVigenere(None, algo_name=name, master_app=self.master)
             attack.render()
