@@ -134,7 +134,7 @@ class AttackCaesar: # Phải có Class này
         log_line = f"""
         <details style="margin-bottom: 5px; border-bottom: 1px solid #333;">
             <summary style="cursor: pointer; list-style: none; outline: none;">
-                <span style="color: #00FF00;">[Key {data['key']:02d}]</span> 
+                <span style="color: #00FF00;">[Key {data['key']}]</span> 
                 "{data['text'][:15]}..." | 
                 <span style="color: #00FFFF;">Score: {data['score']}</span> | 
                 <span style="color: {color}; font-weight: bold;">{status}</span>
@@ -213,7 +213,7 @@ class AttackCaesar: # Phải có Class này
             
             line = (
                 f"<b style='color: {color};'>{rank:<8}</b> | "
-                f"<b>Key {res['key']:02d}</b> | "
+                f"<b>Key {res['key']}</b> | "
                 f"<b style='color: #1f538d;'>{res['score']:<6}</b> | "
                 f"{text_preview}{is_reliable}"
             )
