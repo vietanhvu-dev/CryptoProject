@@ -49,10 +49,41 @@ class HomeView:
                     </svg>
                 </div>
             """, unsafe_allow_html=True)
-
-            # Thông tin cá nhân (Sử dụng CSS để đồng bộ màu sắc)
-            st.markdown("<h1 style='color: #1f538d; margin-top: 20px;'>VŨ VIỆT ANH</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='color: #495057; font-size: 16px; font-weight: 500;'>Data Engineer | FPT Software</p>", unsafe_allow_html=True)
+# --- THÔNG TIN GIỚI THIỆU MỚI ---
+            st.markdown("<h1 style='color: #1f538d; margin-top: 20px; margin-bottom: 0px;'>VŨ VIỆT ANH</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='color: #495057; font-size: 16px; font-weight: 500;'>Data Engineer | Cryptography Researcher</p>", unsafe_allow_html=True)
             
             st.divider()
-            st.info("Ứng dụng hỗ trợ mã hóa, giải mã và thám mã các hệ mật mã cổ điển và hiện đại.")
+
+            # Sử dụng cột để trình bày các đại ý cho gọn
+            col_info1, col_info2 = st.columns(2)
+            
+            with col_info1:
+                st.markdown("🎯 **Education Focus**")
+                st.caption("Designed for academic research and learning classical ciphers.")
+                
+                st.markdown("⚖️ **License**")
+                st.caption("Open-sourced under the **Apache License 2.0**.")
+
+            with col_info2:
+                st.markdown("🔐 **Privacy First**")
+                st.caption("Zero data collection. Processing happens entirely in RAM.")
+                
+                st.markdown("⚠️ **Notice**")
+                st.caption("Third-party cloud; avoid uploading sensitive personal data.")
+
+            # Nút dẫn nhanh tới SECURITY.md (thay cho st.info cũ)
+            st.markdown("---")
+            st.markdown(
+                """
+                <div style="background-color: #f8f9fa; padding: 10px; border-left: 5px solid #1f538d; border-radius: 5px;">
+                    <small style="color: #495057;">
+                        For full terms, please visit our 
+                        <a href="https://github.com/vietanhvu-dev/CryptoProject/blob/master/SECURITY.md" target="_blank" style="color: #1f538d; font-weight: bold; text-decoration: none;">
+                            Security & Privacy Policy
+                        </a>
+                    </small>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
