@@ -59,24 +59,28 @@ class VigenereCracker:
         text_lower = text.lower()
         score = 0
         
-        # 1. Tính điểm thô (Raw Score)
+        # Tính điểm dựa trên Bigrams và Dictionary như cũ
         for bg in common_bigrams:
             score += text_lower.count(bg) * 5 
         
         words = text_lower.split()
         for w in words:
             if len(w) > 3 and w in self.dictionary:
-                score += 50 
+                score += 100
 
-        # 2. Xử lý giảm điểm dựa trên số lần lặp của Key
-        repeat_count = self.get_repeat_count(key)
+        # --- LOGIC PHẠT ĐIỂM LẶP (PENALTY) ---
+        n = len(key)
+        repeat_count = 1
+        # Tìm chu kỳ ngắn nhất
+        for i in range(1, n // 2 + 1):
+            if n % i == 0:
+                substring = key[:i]
+                if substring * (n // i) == key:
+                    repeat_count = n // i
+                    break # Tìm thấy chu kỳ nhỏ nhất thì dừng
         
-        # Công thức: Điểm cuối = Điểm gốc / Số lần lặp
-        # Nếu key là 'ABC', repeat_count = 1 -> Giữ nguyên điểm
-        # Nếu key là 'ABCABC', repeat_count = 2 -> Điểm bị chia đôi
-        final_score = score / repeat_count
-        
-        return final_score
+        # Chia điểm cho số lần lặp. Ví dụ: 'ABCABC' bị chia 2, 'AAAAAA' bị chia 6
+        return score / repeat_count
 
     def crack_vigenere(self, ciphertext, decrypt_func):
         clean_text = "".join(filter(str.isalpha, ciphertext.upper()))
@@ -86,35 +90,36 @@ class VigenereCracker:
         repeated = self.find_repeated_sequences(clean_text, seq_len=3)
         spacings = self.get_spacings(repeated)
         
-        # 3. Kết hợp IC để chọn candidate_lengths tốt nhất
+        # 3. Tìm key lengths tiềm năng
         kasiski_lengths = self.find_candidate_key_lengths(spacings)
         if not kasiski_lengths:
-            kasiski_lengths = range(2, 13) # Thử từ 2 đến 12 nếu Kasiski tịt ngòi
+            kasiski_lengths = range(2, 13)
 
-        # Lọc lại m bằng IC: m chuẩn sẽ có IC các cột xấp xỉ 0.06x
         final_candidates = []
         for m in kasiski_lengths:
             avg_ic = sum(self.calculate_ic(clean_text[i::m]) for i in range(m)) / m
             final_candidates.append((m, avg_ic))
         
-        # Sắp xếp theo IC giảm dần
         final_candidates.sort(key=lambda x: x[1], reverse=True)
         
         results = []
-        # Thử 5 độ dài khóa có IC cao nhất
+        # Duyệt TOÀN BỘ candidates để xem log đầy đủ
         for m, ic_score in final_candidates:
             guessed_key = self.infer_key_by_frequency(clean_text, m)
             decrypted = decrypt_func("Vigenère", ciphertext, guessed_key)
-            score = self.frequency_score(decrypted)
+            
+            # TRUYỀN THÊM guessed_key VÀO ĐÂY ĐỂ TÍNH PHẠT LẶP
+            score = self.frequency_score(decrypted, guessed_key)
             
             results.append({
                 "key": guessed_key,
                 "key_len": m,
                 "text": decrypted,
                 "score": score,
-                "ic": ic_score # Để hiển thị thêm thông tin nếu cần
+                "ic": ic_score
             })
             
+        # Sắp xếp lại: Lúc này các Key ngắn sẽ "vượt mặt" các Key lặp lại nhờ điểm Score cao hơn
         return sorted(results, key=lambda x: x["score"], reverse=True)
 
     def infer_key_by_frequency(self, clean_text, m):
@@ -130,35 +135,45 @@ class VigenereCracker:
         return key
 
     def find_best_caesar_shift(self, column):
-        english_freqs = [
-            0.0817, 0.0149, 0.0278, 0.0425, 0.1270, 0.0223, 0.0202, 0.0609, 0.0697, 
-            0.0015, 0.0077, 0.0403, 0.0241, 0.0675, 0.0751, 0.0193, 0.0010, 0.0599, 
-            0.0633, 0.0906, 0.0276, 0.0098, 0.0236, 0.0015, 0.0197, 0.0007
-        ]
+        # Danh sách các chữ cái phổ biến nhất trong tiếng Anh theo thứ tự giảm dần
+        # 'E' là phổ biến nhất, sau đó đến 'T', 'A', v.v.
+        english_most_common = "ETAOINSHRDLCUMWFGYPBVKJXQZ"
+        
+        n = len(column)
+        if n == 0: return 0
+        
+        # 1. Đếm số lần xuất hiện của từng chữ trong cột và lấy top phổ biến nhất
+        # Ví dụ: [('X', 10), ('Y', 8), ...]
+        counts = Counter(column.upper())
+        # Lấy các chữ cái xuất hiện trong cột, sắp xếp từ nhiều đến ít
+        column_chars_sorted = [item[0] for item in counts.most_common()]
         
         best_shift = 0
-        min_chi_sq = float('inf')
-        n = len(column)
+        max_matches = -1
         
-        # Đếm tần suất thực tế của các chữ cái trong cột một lần duy nhất
-        # Điều này giúp tăng tốc vòng lặp 26 lần bên dưới
-        column_counts = Counter([(ord(c) - ord('A')) for c in column])
-
+        # 2. Thử từng shift (0-25)
         for shift in range(26):
-            chi_sq = 0
-            for i in range(26):
-                # Vị trí thực tế sau khi dịch chuyển ngược (shift)
-                actual_char_index = (i + shift) % 26
-                observed = column_counts[actual_char_index]
-                expected = n * english_freqs[i]
-                
-                if expected > 0:
-                    chi_sq += ((observed - expected) ** 2) / expected
+            matches = 0
+            # Giải mã thử cột với shift này
+            # Ví dụ: Nếu shift=1, 'B' thành 'A', 'C' thành 'B'
             
-            if chi_sq < min_chi_sq:
-                min_chi_sq = chi_sq
+            # Chúng ta chỉ cần kiểm tra 6 chữ cái xuất hiện nhiều nhất trong cột sau khi dịch
+            # xem chúng có nằm trong nhóm 6 chữ cái phổ biến nhất của tiếng Anh không.
+            for char in column_chars_sorted[:6]: 
+                # Dịch ngược chữ cái về nguyên bản
+                char_idx = ord(char) - ord('A')
+                decrypted_char = chr((char_idx - shift) % 26 + ord('A'))
+                
+                # Nếu chữ cái sau khi dịch nằm trong top 6 của tiếng Anh (E, T, A, O, I, N)
+                # thì ta cộng điểm "trùng khớp"
+                if decrypted_char in english_most_common[:6]:
+                    matches += 1
+            
+            # Shift nào có nhiều chữ cái rơi vào nhóm phổ biến nhất thì chọn shift đó
+            if matches > max_matches:
+                max_matches = matches
                 best_shift = shift
-        
+                
         return best_shift
     
     def calculate_ic(self, text):
