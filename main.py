@@ -27,9 +27,6 @@ class MainApp:
         # Giữ nguyên logic xử lý của bạn
         return f"Đang giả lập mã hóa {algo_name}: {data}"
 
-    def handle_decrypt(self, algo_name, data, key_input):
-        # Giữ nguyên logic xử lý của bạn
-        return f"Đang giả lập giải mã {algo_name}: {data}"
 
 # --- PHẦN KHỞI CHẠY (Thay thế cho app.mainloop) ---
 if __name__ == "__main__":
