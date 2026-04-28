@@ -240,6 +240,23 @@ class CryptoView:
                 return res
             except Exception as e:
                 st.error(f"Lỗi Vigenère: {e}")
+        elif algo_name == "RSA":
+            try:
+                p = int(params.get('p_key', 0))
+                q = int(params.get('q_key', 0))
+                e = int(params.get('e_key', 65537))
+                
+                from core.public_key.rsa_core import rsa_cipher_segmented
+                res, logs = rsa_cipher_segmented(text, p, q, e, mode='encrypt')
+                
+                if res is None: # Trường hợp e không hợp lệ
+                    st.error(logs[0]['content'])
+                    return ""
+                    
+                st.session_state.segmented_logs = logs
+                return res
+            except ValueError:
+                st.error("p, q, e phải là số nguyên!")
         return ""
         
 
@@ -261,5 +278,19 @@ class CryptoView:
             v_key = params.get('vigenere_key', '').strip()
             from core.classical.vigenere_core import vigenere_cipher_segmented
             res, logs = vigenere_cipher_segmented(text, v_key, mode='decrypt')
+            st.session_state.segmented_logs = logs
+            return res
+        elif algo_name == "RSA":
+            p = int(params.get('p_key', 0))
+            q = int(params.get('q_key', 0))
+            e = int(params.get('e_key', 65537))
+            
+            from core.public_key.rsa_core import rsa_cipher_segmented
+            res, logs = rsa_cipher_segmented(text, p, q, e, mode='decrypt')
+            
+            if res is None:
+                st.error(logs[0]['content'])
+                return ""
+                
             st.session_state.segmented_logs = logs
             return res
