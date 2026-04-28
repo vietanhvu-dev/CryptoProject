@@ -2,132 +2,139 @@ import streamlit as st
 
 class HomeView:
     def __init__(self, master=None, **kwargs):
+        # Lưu trữ master nếu cần dùng sau này
         self.master = master
 
     def render(self):
-        # 1. Thêm CSS cho Background động và hiệu ứng Glassmorphism
+        """
+        Giao diện Home tập trung vào tính thẩm mỹ và thông tin tổng quan.
+        Sử dụng Expander để tổ chức các Module thông tin.
+        """
+        # --- STYLE & CSS ---
         st.markdown("""
             <style>
-            /* Background động với hiệu ứng Gradient di chuyển */
-            .main {
-                background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-                background-size: 400% 400%;
-                animation: gradient 15s ease infinite;
-            }
-
-            @keyframes gradient {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-
-            /* Container chính với hiệu ứng kính mờ */
-            .glass-card {
-                background: rgba(255, 255, 255, 0.85);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border-radius: 20px;
-                border: 1px solid rgba(255, 255, 255, 0.18);
+            .home-container {
+                background-color: #F1F3F5;
                 padding: 30px;
-                margin-bottom: 25px;
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-            }
-
-            /* Tùy chỉnh các tiêu đề */
-            .main-title {
-                color: #1f538d;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                border-radius: 15px;
                 text-align: center;
-                font-weight: 800;
+                margin-bottom: 20px;
             }
-
-            /* Hiệu ứng cho SVG để nổi bật trên nền kính */
-            .alice-bob-svg {
-                display: block;
-                margin: auto;
-                filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.1));
-            }
-            
-            /* Tùy chỉnh Expander của Streamlit */
-            .stExpander {
-                border: none !important;
-                background-color: rgba(255, 255, 255, 0.5) !important;
-                border-radius: 10px !important;
-                margin-bottom: 10px !important;
+            .module-card {
+                padding: 10px;
+                border-radius: 10px;
+                border: 1px solid #e6e9ef;
+                margin-bottom: 10px;
             }
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. Header & Sơ đồ Alice & Bob
+
+    
+        # --- HEADER SECTION (SVG & BRANDING) ---
         with st.container():
             st.markdown(f"""
-                <div class="glass-card">
-                    <h1 class="main-title">VŨ VIỆT ANH</h1>
-                    <p style='text-align: center; color: #495057; font-size: 1.1em;'>Data Engineer | Cryptography Researcher</p>
-                    <svg width="100%" height="200" viewBox="0 0 500 200" class="alice-bob-svg">
-                        <circle cx="100" cy="100" r="40" fill="#1f538d" opacity="0.9" />
-                        <text x="100" y="160" font-family="Arial" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Alice</text>
-                        
-                        <circle cx="400" cy="100" r="40" fill="#1f538d" opacity="0.9" />
-                        <text x="400" y="160" font-family="Arial" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Bob</text>
-                        
+                <div class="home-container">
+                    <svg width="400" height="180" viewBox="0 0 500 250" style="max-width: 100%;">
+                        <circle cx="85" cy="115" r="35" fill="#1f538d" />
+                        <text x="85" y="175" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Alice</text>
+                        <circle cx="415" cy="115" r="35" fill="#1f538d" />
+                        <text x="415" y="175" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Bob</text>
                         <defs>
                             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" fill="#1f538d" />
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#adb5bd" />
                             </marker>
                         </defs>
-                        <path d="M 150 100 Q 250 50 350 100" stroke="#1f538d" stroke-width="3" fill="none" marker-end="url(#arrowhead)" stroke-dasharray="5,5" />
-                        
-                        <rect x="230" y="110" width="40" height="30" rx="5" fill="#fcc419" />
-                        <circle cx="250" cy="110" r="8" fill="none" stroke="#fcc419" stroke-width="3" />
+                        <line x1="130" y1="115" x2="360" y2="115" stroke="#adb5bd" stroke-width="3" marker-end="url(#arrowhead)" />
+                        <rect x="230" y="125" width="40" height="30" fill="#fcc419" />
+                        <circle cx="250" cy="125" r="10" fill="none" stroke="#fcc419" stroke-width="3" />
                     </svg>
+                    <h1 style='color: #1f538d; margin-top: 10px;'>CRYPTO SYSTEM DEMO PLATFORM</h1>
+                    <p style='color: #495057; font-size: 1.1rem;'>Vũ Việt Anh | Trần Sỹ Toàn</p>
                 </div>
             """, unsafe_allow_html=True)
 
-        # 3. Phần giới thiệu chi tiết với Expander
-        st.write("### 🛠 Hệ thống Xử lý & Tính năng")
-        
-        with st.expander("🔐 Thuật toán Mã hóa (Core Cryptography)"):
+
+        st.subheader("🛠️ Explore Cryptography Modules")
+
+        # --- MODULE 1: CAESAR CIPHER ---
+        with st.expander("🔑 **1. Caesar Cipher (Mật mã Caesar)**"):
+            st.info("**Category:** Symmetric Encryption / Substitution Cipher")
             st.markdown("""
-            **Cách hệ thống xử lý:**
-            * **Input Handling:** Tiếp nhận văn bản thô hoặc file từ người dùng.
-            * **Key Generation:** Khởi tạo khóa dựa trên thuật toán được chọn (AES, RSA, Classical Ciphers).
-            * **Encryption Process:** Dữ liệu được băm nhỏ và xử lý qua các vòng (Rounds) biến đổi toán học trong RAM.
-            * **Output:** Trả về Ciphertext dưới dạng Hex hoặc Base64.
+            **Cách hoạt động:**
+            Mỗi ký tự trong văn bản gốc (Plaintext) sẽ được thay thế bằng một ký tự khác nằm cách nó một khoảng $k$ vị trí trong bảng chữ cái.
+            * **Encryption:** $E(x) = (x + k) \mod 26$
+            * **Decryption:** $D(x) = (x - k) \mod 26$
+            """)
+            st.markdown('<div class="how-it-works"><b>Ví dụ:</b> Với k=3, "A" trở thành "D", "B" trở thành "E".</div>', unsafe_allow_html=True)
+
+        # --- MODULE 2: VIGENERE CIPHER ---
+        with st.expander("🗝️ **2. Vigenère Cipher (Mật mã Vigenère)**"):
+            st.info("**Category:** Polyalphabetic Substitution")
+            st.markdown("""
+            **Cách hoạt động:**
+            Sử dụng một từ khóa (Key) để thay đổi khoảng cách dịch chuyển cho từng ký tự, thay vì dùng một số cố định như Caesar.
+            1. Lặp lại từ khóa sao cho chiều dài bằng với văn bản gốc.
+            2. Cộng giá trị của từng cặp ký tự tương ứng từ văn bản gốc và từ khóa.
+            * **Formula:** $C_i = (P_i + K_i) \mod 26$
+            """)
+            st.markdown('<div class="how-it-works"><b>Ưu điểm:</b> Chống lại việc thám mã dựa trên tần suất chữ cái đơn giản.</div>', unsafe_allow_html=True)
+
+        # --- MODULE 3: RSA ALGORITHM ---
+        with st.expander("🧬 **3. RSA Algorithm (Hệ mật mã khóa công khai)**"):
+            st.info("**Category:** Asymmetric Encryption")
+            st.markdown("""
+            **Cách hoạt động:**
+            Dựa trên độ khó của việc phân tích một số nguyên cực lớn thành các thừa số nguyên tố.
+            1. **Key Generation:** Chọn 2 số nguyên tố lớn $p, q$, tính $n = p \times q$.
+            2. **Public Key (e, n):** Dùng để mã hóa, có thể chia sẻ rộng rãi.
+            3. **Private Key (d, n):** Dùng để giải mã, được giữ bí mật tuyệt đối.
+            * **Encryption:** $C = M^e \mod n$
+            * **Decryption:** $M = C^d \mod n$
             """)
 
-        with st.expander("📊 Phân tích Dữ liệu (Data Engineering)"):
+        # --- MODULE 4: CAESAR CRYPTANALYSIS ---
+        with st.expander("🔍 **4. Caesar Cryptanalysis (Thám mã Caesar)**"):
+            st.info("**Method:** Brute Force & Frequency Analysis")
             st.markdown("""
-            **Cách hệ thống xử lý:**
-            * **Pipeline:** Trích xuất đặc tính từ các bản mã để thực hiện thám mã (Cryptanalysis).
-            * **Visualization:** Sử dụng biểu đồ tần suất (Frequency Analysis) để tìm ra quy luật của các bộ mã cổ điển.
+            **Cách hoạt động:**
+            Vì Caesar chỉ có 26 khả năng dịch chuyển (Key $k$ từ 1-26), chúng ta có thể phá giải bằng:
+            * **Brute Force:** Thử lần lượt tất cả 26 khóa cho đến khi tìm thấy văn bản có nghĩa.
+            * **Frequency Analysis: (Not Implemented)** Phân tích tần suất các chữ cái xuất hiện (ví dụ trong tiếng Anh, chữ 'E' thường xuất hiện nhiều nhất) để dự đoán khóa $k$.
             """)
 
-        with st.expander("🛡 Bảo mật & Quyền riêng tư (Security)"):
+        # --- MODULE 5: VIGENERE CRYPTANALYSIS ---
+        with st.expander("🕵️ **5. Vigenère Cryptanalysis (Thám mã Vigenère)**"):
+            st.info("**Method:** Kasiski Examination / Friedman Test")
             st.markdown("""
-            **Cách hệ thống xử lý:**
-            * **Stateless Processing:** Hệ thống không lưu trữ trạng thái. Sau khi bạn đóng trình duyệt, mọi biến số trong RAM sẽ bị giải phóng.
-            * **No Persistence:** Không sử dụng Database cho dữ liệu người dùng, đảm bảo tính riêng tư tuyệt đối.
+            **Cách hoạt động:**
+            Phức tạp hơn Caesar vì mỗi chữ cái có thể được mã hóa bởi các khóa khác nhau.
+            1. **Tìm độ dài khóa (m):** Tìm các chuỗi ký tự lặp lại trong bản mã để dự đoán chiều dài của từ khóa.
+            2. **Tách nhóm:** Chia bản mã thành $m$ nhóm. Mỗi nhóm bây giờ thực chất là một hệ mật mã Caesar đơn giản.
+            3. **Phá giải:** Dùng Frequency Analysis trên từng nhóm để tìm ra từng chữ cái của từ khóa.
             """)
 
-        # 4. Footer thông tin thêm
-        st.markdown("---")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info("🎯 **Mục tiêu:** Nghiên cứu và giáo dục về mật mã học.")
-        with col2:
-            st.warning("⚠️ **Lưu ý:** Đây là môi trường Cloud, hạn chế upload dữ liệu nhạy cảm.")
+        # --- MAIN INFO EXPANDER ---
+        with st.expander("ℹ️ **About this Project & Security**", expanded=True):
+            col_info1, col_info2 = st.columns(2)
+            with col_info1:
+                st.markdown("🎯 **Education Focus**")
+                st.caption("Designed for academic research and learning classical ciphers.")
+                st.markdown("⚖️ **License**")
+                st.caption("Open-sourced under the **Apache License 2.0**.")
+            with col_info2:
+                st.markdown("🔐 **Privacy First**")
+                st.caption("Zero data collection. Processing happens entirely in RAM.")
+                st.markdown("⚠️ **Notice**")
+                st.caption("Third-party cloud; avoid uploading sensitive personal data.")
+            
+            st.markdown(
+                """
+                <div style="background-color: #f8f9fa; padding: 10px; border-left: 5px solid #1f538d; border-radius: 5px; margin-top: 10px;">
+                    <small>For full terms, visit <a href="https://github.com/vietanhvu-dev/CryptoProject/blob/master/SECURITY.md" target="_blank">Security Policy</a></small>
+                </div>
+                """, unsafe_allow_html=True)
 
-        st.markdown(
-            """
-            <div style="text-align: center; padding: 20px;">
-                <small>Giấy phép Apache License 2.0 | Xem chi tiết tại 
-                <a href="https://github.com/vietanhvu-dev/CryptoProject" target="_blank" style="color: #1f538d;">GitHub</a></small>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
 
-# Chạy thử
-if __name__ == "__main__":
-    HomeView().render()
+        st.divider()
+        st.caption("© 2026 Vũ Việt Anh & Contributors - Built with Streamlit")
