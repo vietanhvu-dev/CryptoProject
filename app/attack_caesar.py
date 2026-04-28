@@ -199,7 +199,7 @@ class AttackCaesar: # Phải có Class này
 
         # 3. QUAN TRỌNG: Lặp qua collected_results (List các Dictionary gốc)
         # Sắp xếp điểm cao nhất lên đầu
-        sorted_results = sorted(st.session_state.collected_results, key=lambda x: x['score'], reverse=True)
+        sorted_results = sorted(st.session_state.collected_results, key=lambda x: x['score'], reverse=True)[:7]
 
         for i, res in enumerate(sorted_results):
             rank = f"#{i + 1}"
