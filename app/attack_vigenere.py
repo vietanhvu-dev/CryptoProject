@@ -66,26 +66,80 @@ class AttackVigenere: # Phải có Class này
         with right_col:
             st.markdown("### 🖥️ SYSTEM LOG")
             
-            # CHỈ CẦN DÒNG NÀY: Nối các chuỗi HTML đã có sẵn trong logs
+            # --- PHẦN 1: TERMINAL LOG (Quá trình thám mã) ---
             log_content = "".join(st.session_state.logs) if st.session_state.logs else "Ready..."
-            
             st.markdown(
                 f"""
                 <div style="
                     background-color: #000000; color: #00FF00; padding: 15px; 
                     border-radius: 5px; font-family: 'Courier New', monospace;
-                    height: 800px; overflow-y: auto; border: 1px solid #333; font-size: 13px;
+                    height: 350px; overflow-y: auto; border: 1px solid #333; 
+                    font-size: 13px; white-space: pre-wrap; line-height: 1.5;
                 ">
                     {log_content}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            # Nút xóa Log bên dưới
-            st.write("") # Tạo khoảng cách nhỏ
-            if st.button("Xóa Log", use_container_width=True):
+            # --- PHẦN 2: BOX BAO TOÀN BỘ KẾT QUẢ (Có thanh cuộn) ---
+            # Sử dụng st.container kết hợp với CSS để khống chế chiều cao
+            # Chúng ta dùng "with" để bao toàn bộ expanders vào một khối
+            # CSS để biến container này thành một box có scrollbar
+            st.markdown("""
+                <style>
+                    .results-container {
+                        background-color: #000000;
+                        border: 1px solid #333;
+                        border-radius: 5px;
+                        padding: 10px;
+                        height: 400px; /* Giới hạn chiều cao như bạn muốn */
+                        overflow-y: auto;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+
+            # Bắt đầu container chứa các Expander
+            # Lưu ý: Streamlit chưa hỗ trợ class trực tiếp cho container, 
+            # nên ta sẽ dùng một thủ thuật bọc HTML xung quanh nếu cần, 
+            # nhưng cách an toàn nhất cho widget là dùng st.container và CSS selector
+            
+            result_box = st.container(height=350) 
+            with result_box:
+                if st.session_state.collected_results:
+                    for idx, res in enumerate(st.session_state.collected_results):
+                        # --- LOGIC TÔ MÀU TỪ ON_RESULT_RECEIVED_ST ---
+                        score = res['score']
+                        if score >= 5000:
+                            status, color, icon = "KHỚP MẠNH", "#FF3131", "🔴" 
+                        elif score >= 1000:
+                            status, color, icon = "KHẢ THI", "#D4A017", "🟡"
+                        else:
+                            status, color, icon = "NHIỄU", "#434B43", "⚪"
+
+                        full_key = str(res['key'])
+                        display_key = (full_key[:8] + "..") if len(full_key) > 10 else full_key
+                        
+                        # Tạo label có màu sắc sử dụng Markdown lồng trong Expander
+                        # Streamlit cho phép dùng màu trong text bằng cách :color[text]
+                        label = f"#{idx+1} | {icon} Key: {display_key} | Score: {score:.1f}"
+                        
+                        with st.expander(label):
+                            # Hiển thị trạng thái màu mè bên trong
+                            st.markdown(f"Trạng thái: <span style='color:{color}; font-weight:bold;'>{status}</span>", unsafe_allow_html=True)
+                            
+                            col1, col2 = st.columns(2)
+                            col1.write(f"**Full Key:** `{full_key}`")
+                            col2.write(f"**m:** {res.get('key_len', 'N/A')} | **IC:** {res.get('ic', 0):.4f}")
+                            
+                            st.divider()
+                            st.write("**Bản giải mã thử:**")
+                            st.code(res['text'], language="text")
+                else:
+                    st.info("Chưa có kết quả phân tích.")
+
+            if st.button("Xóa Log & Dữ liệu", use_container_width=True):
                 st.session_state.logs = []
-                st.session_state.current_result = ""
+                st.session_state.collected_results = []
                 st.rerun()
 # --- BOTTOM CONTROL BAR ---
         st.divider()
@@ -130,110 +184,47 @@ class AttackVigenere: # Phải có Class này
                 st.success("✅ Sẵn sàng!")
                
     def on_result_received_st(self, data):
-        """
-        data expected: {
-            'key': 'ABC', 
-            'key_len': 3, 
-            'text': '...', 
-            'score': 25.5
-        }
-        """
-        # 1. Lưu vào collected_results để dùng cho Export sau này
-        if "collected_results" in st.session_state:
-            # Kiểm tra tránh trùng lặp nếu cần, hoặc cứ append
-            st.session_state.collected_results.append(data)
-        
-        # 2. Phân loại trạng thái dựa trên Score (Vigenère score thường cao hơn Caesar)
-        # Giả sử: Score > 50 là khớp mạnh, > 20 là khả thi
-        if data['score'] >= 5000:
-            status, color = "KHỚP MẠNH", "#FF3131"  # Đỏ rực
-        elif data['score'] >= 1000:
-            status, color = "KHẢ THI", "#D4A017"   # Vàng gold
-        else:
-            status, color = "NHIỄU", "#1CCE1C"    # Xanh lá
-
-        # 3. Format hiển thị Key
-        # Với Vigenère, key là chuỗi nên ta để trong nháy đơn
-        display_key = f"'{data['key']}'"
-        
-        # 4. Xử lý nội dung văn bản HTML
-        full_text_html = data['text'].replace("\n", "<br>")
-        
-        # 5. Cấu trúc Log line với hiệu ứng mở rộng
-        log_line = f"""
-        <details style="margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 5px;">
-            <summary style="cursor: pointer; list-style: none; outline: none; font-family: 'Courier New', monospace;">
-                <span style="color: #00FF00;">[Key: {display_key}]</span> 
-                <span style="color: #888;">(Len: {data.get('key_len', '??')})</span> | 
-                <span style="color: #00FFFF;">Score: {data['score']:.1f}</span> | 
-                <span style="color: {color}; font-weight: bold;">{status}</span>
-                <span style="color: #555; font-size: 10px; margin-left: 10px;">▼ chi tiết</span>
-            </summary>
-            <div style="
-                margin-top: 8px; 
-                padding: 12px; 
-                background-color: #1a1a1a; 
-                border-left: 3px solid {color};
-                color: #cccccc;
-                font-size: 13px;
-                line-height: 1.5;
-            ">
-                <div style="color: {color}; font-weight: bold; margin-bottom: 5px;">>>> DECRYPTED TEXT:</div>
-                <div style="word-wrap: break-word;">{full_text_html}</div>
-            </div>
-        </details>
-        """
-        
-        st.session_state.logs.append(log_line)
-        
+        pass
+      
 
     def execute_logic_st(self, ciphertext):
-        if not ciphertext:
-            return
-        # ĐẢM BẢO KHỞI TẠO TẠI ĐÂY NẾU CHƯA CÓ
+        if not ciphertext: return
+        
+        # Reset dữ liệu cũ để tránh chồng chéo
+        st.session_state.logs = []
+        st.session_state.collected_results = []
+        
         if 'core' not in st.session_state:
             st.session_state.core = VigenereCracker()
-        
-        if 'logs' not in st.session_state:
-            st.session_state.logs = []
 
-      
-        # 2. Khởi tạo log với phong cách Terminal
-        st.session_state.logs = [
-            "<span style='color: #5bc0de;'>[INFO] > Khởi động module thám mã Vigenère...</span>",
-            "<span style='color: #5bc0de;'>[INFO] > Đang áp dụng phương pháp Kasiski Examination...</span>"
-        ]
-        
-        with st.spinner("🚀 Đang phân tích chuỗi lặp và tính toán độ dài khóa..."):
-            # Lấy hàm giải mã từ master_app
-            decrypt_func = self.handle_decrypt
-            
-            # 3. Gọi Core để xử lý Kasiski và thám mã
-            # Lưu ý: core.crack_vigenere trả về list kết quả đã được chấm điểm
-            # Chúng ta sẽ duyệt qua list này để đẩy vào logs thông qua on_result_received_st
+        def on_log_received(message):
+            # Chỉ nhận tin nhắn văn bản thuần từ Core
+            st.session_state.logs.append(message) 
+
+        with st.spinner("🚀 Đang phân tích chuỗi lặp và thám mã..."):
             try:
-                # Bước này Core sẽ tìm chuỗi lặp, tính m, và thử các key
-                results = st.session_state.core.crack_vigenere(ciphertext, decrypt_func)
+                # 1. Gọi Core xử lý
+                # Core sẽ tự động gọi on_log_received để ghi lại quá trình
+                results = st.session_state.core.crack_vigenere(
+                    ciphertext, 
+                    self.handle_decrypt, 
+                    log_callback=on_log_received
+                )
                 
                 if not results:
-                    st.session_state.logs.append("<span style='color: #d9534f;'>[ERROR] ❌ Không tìm thấy cấu trúc lặp khả thi.</span>")
+                    on_log_received("\n[ERROR] ❌ Không tìm thấy cấu trúc lặp khả thi.")
                 else:
-                    st.session_state.logs.append(f"<span style='color: #f0ad4e;'>[DATA] > Tìm thấy {len(results)} ứng viên tiềm năng.</span>")
-                    
-                    # 4. Đẩy từng kết quả vào log và collected_results thông qua hàm callback của bạn
-                    for res in results:
-                        self.on_result_received_st(res)
-                
-                # 5. Sắp xếp lại danh sách kết quả tổng thể (nếu cần)
-                st.session_state.collected_results.sort(key=lambda x: x['score'], reverse=True)
-                
-                # 6. Thông báo hoàn tất
-                st.session_state.logs.append("<span style='color: #5cb85c;'>[SUCCESS] ✅ Phân tích Kasiski hoàn tất. Đã xếp hạng các Key.</span>")
+                    # 2. Lưu kết quả vào state để Box hiển thị sử dụng
+                    # Sắp xếp luôn tại đây
+                    st.session_state.collected_results = sorted(
+                        results, key=lambda x: x['score'], reverse=True
+                    )
+                    on_log_received(f"\n[SUCCESS] ✅ Tìm thấy {len(results)} ứng viên tiềm năng.")
                 
             except Exception as e:
-                st.session_state.logs.append(f"<span style='color: #d9534f;'>[CRITICAL] ❌ Lỗi hệ thống: {str(e)}</span>")
+                on_log_received(f"\n[CRITICAL] ❌ Lỗi hệ thống: {str(e)}")
 
-        # 7. Rerun để cập nhật giao diện
+        # 3. Sau khi chạy xong, ép Streamlit cập nhật giao diện
         st.rerun()
         
     def handle_decrypt(self, method, ciphertext, key):
@@ -281,13 +272,13 @@ class AttackVigenere: # Phải có Class này
         sorted_results = sorted(st.session_state.collected_results, key=lambda x: x['score'], reverse=True)
 
         # Giới hạn hiển thị Top 20 để tránh lag UI
-        for i, res in enumerate(sorted_results[:20]):
+        for i, res in enumerate(sorted_results[:5]):
             rank = f"#{i + 1}"
             
             # Ngưỡng điểm của Vigenère thường cao hơn Caesar, nên điều chỉnh logic màu sắc
-            if res['score'] >= 50:
+            if res['score'] >= 5000:
                 color, status_icon = "#FF3131", "<b style='color: #FF3131;'> ✅</b>"
-            elif res['score'] >= 20:
+            elif res['score'] >= 1000:
                 color, status_icon = "#D4A017", ""
             else:
                 color, status_icon = "#555", ""
@@ -321,7 +312,7 @@ class AttackVigenere: # Phải có Class này
                 background-color: #ffffff;
                 color: #212529;
                 padding: 15px;
-                height: 550px;
+                height: 400px;
                 overflow-y: auto;
                 overflow-x: hidden;
                 border-radius: 10px;
