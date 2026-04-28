@@ -1,4 +1,7 @@
 import streamlit as st
+import os
+from core.classical.caesar_core import caesar_cipher_segmented
+
 class CryptoView:
     def __init__(self, master, algo_name, master_app, **kwargs):
         self.master = master
@@ -6,6 +9,13 @@ class CryptoView:
         self.master_app = master_app
 
     def render(self): 
+            # --- KHỞI TẠO SESSION STATE ---
+        if 'logs' not in st.session_state:
+            st.session_state.logs = []
+        if 'segmented_logs' not in st.session_state:
+            st.session_state.segmented_logs = []
+        if 'current_result' not in st.session_state:
+            st.session_state.current_result = ""
         st.markdown(f"<h1 style='color: #1f538d;'>Hệ mật: {self.algo_name}</h1>", unsafe_allow_html=True)
 
         # Chia cột chính (Trái: Xử lý | Phải: Log)
@@ -131,9 +141,9 @@ class CryptoView:
                     st.session_state.logs.append(f"> Engine: {self.algo_name} | Action: {action_clicked.upper()}")
                     with st.spinner("Đang xử lý..."):
                         if action_clicked == "encrypt":
-                            result = self.master_app.handle_encrypt(self.algo_name, input_text, params)
+                            result = self.handle_encrypt(self.algo_name, input_text, params)
                         else:
-                            result = self.master_app.handle_decrypt(self.algo_name, input_text, params)
+                            result = self.handle_decrypt(self.algo_name, input_text, params)
                     
                     st.session_state.current_result = result
                     st.session_state.logs.append("> Xử lý hoàn tất.")
@@ -165,38 +175,91 @@ class CryptoView:
             st.text_area("Văn bản sau xử lý:", value=current_out, height=200)
 
         with right_col:
-            # --- PANEL PHẢI: LOG TERMINAL ---
             st.markdown("### 🖥️ PROCESSOR LOG")
-            
-            if 'logs' not in st.session_state:
-                st.session_state.logs = []
-            
-            # Chuyển list log thành chuỗi văn bản
-            log_text = "\n".join(st.session_state.logs) if st.session_state.logs else "Ready to process..."
+            # Kiểm tra nếu có log phân đoạn thì hiển thị
+            if st.session_state.segmented_logs:
+                for i, chunk in enumerate(st.session_state.segmented_logs):
+                    # Đoạn đầu tiên (i == 0) sẽ luôn mở, các đoạn sau sẽ đóng
+                    is_first = (i == 0)
+                    
+                    with st.expander(chunk['title'], expanded=is_first):
+                        terminal_html = f"""
+                            <div style="
+                                background-color: #000000; 
+                                color: #00FF00; 
+                                font-family: 'Courier New', Courier, monospace; 
+                                padding: 12px; 
+                                border-radius: 5px; 
+                                font-size: 13px; 
+                                line-height: 1.5;
+                                max-height: 550px; 
+                                overflow-y: auto;
+                                border: 1px solid #333;
+                                white-space: pre-wrap;
+                            ">
+            {chunk['content']}
+                            </div>
+                        """
+                        st.markdown(terminal_html, unsafe_allow_html=True)
+            else:
+                st.info("Chưa có tiến trình chi tiết.")
 
-            # Tạo giao diện Terminal bằng HTML/CSS
-            terminal_html = f"""
-                <div style="
-                    background-color: #000000; 
-                    color: #00FF00; 
-                    font-family: 'Courier New', Courier, monospace; 
-                    padding: 15px; 
-                    border-radius: 5px; 
-                    height: 850px; 
-                    overflow-y: auto; 
-                    white-space: pre-wrap;
-                    border: 1px solid #333;
-                    font-size: 13px;
-                    line-height: 1.5;
-                ">
-{log_text}
-                </div>
-            """
-            st.markdown(terminal_html, unsafe_allow_html=True)
-            
-            # Nút xóa Log bên dưới
-            st.write("") # Tạo khoảng cách nhỏ
+            # Nút xóa log
             if st.button("Xóa Log", use_container_width=True):
-                st.session_state.logs = []
-                st.session_state.current_result = ""
+                st.session_state.segmented_logs = []
                 st.rerun()
+
+    def handle_encrypt(self, algo_name, text, params):
+        if algo_name == "Caesar":
+            try:
+                # Ép kiểu an toàn
+                shift_val = params.get('shift_key', 0)
+                shift = int(shift_val) if str(shift_val).isdigit() else 0
+                
+                # Gọi hàm core trả về (kết quả, danh sách logs)
+                from core.classical import caesar_cipher_segmented
+                res, logs = caesar_cipher_segmented(text, shift, mode='encrypt')
+                
+                # Cập nhật vào session_state
+                st.session_state.segmented_logs = logs
+                return res
+            except Exception as e:
+                st.error(f"Lỗi mã hóa Caesar: {e}")
+                return ""
+        elif algo_name == "Vigenère":
+            try:
+                v_key = params.get('vigenere_key', '').strip()
+                if not v_key:
+                    st.error("Vui lòng nhập Key cho Vigenère!")
+                    return ""
+                
+                from core.classical.vigenere_core import vigenere_cipher_segmented
+                res, logs = vigenere_cipher_segmented(text, v_key, mode='encrypt')
+                
+                st.session_state.segmented_logs = logs
+                return res
+            except Exception as e:
+                st.error(f"Lỗi Vigenère: {e}")
+        return ""
+        
+
+    def handle_decrypt(self, algo_name, text, params):
+        if algo_name == "Caesar":
+            try:
+                shift_val = params.get('shift_key', 0)
+                shift = int(shift_val) if str(shift_val).isdigit() else 0
+                
+                from core.classical import caesar_cipher_segmented
+                res, logs = caesar_cipher_segmented(text, shift, mode='decrypt')
+                
+                st.session_state.segmented_logs = logs
+                return res
+            except Exception as e:
+                st.error(f"Lỗi giải mã Caesar: {e}")
+                return ""
+        if algo_name == "Vigenère":
+            v_key = params.get('vigenere_key', '').strip()
+            from core.classical.vigenere_core import vigenere_cipher_segmented
+            res, logs = vigenere_cipher_segmented(text, v_key, mode='decrypt')
+            st.session_state.segmented_logs = logs
+            return res
