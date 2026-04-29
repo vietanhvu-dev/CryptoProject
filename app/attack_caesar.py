@@ -37,7 +37,7 @@ class AttackCaesar: # Phải có Class này
             if uploaded_file is not None:
                 default_text = uploaded_file.read().decode("utf-8")
             
-            input_ciphertext = st.text_area("Bản mã đầu vào (Ciphertext):", 
+            input_ciphertext = st.text_area("📋 Bản mã đầu vào (Ciphertext):", 
                                             value=default_text, 
                                             height=150)
 
@@ -52,7 +52,7 @@ class AttackCaesar: # Phải có Class này
             else:
                 st.info("Chưa có kết quả phân tích.")
         with right_col:
-            st.markdown("### 🖥️ SYSTEM LOG")
+            st.markdown("### 🖥️ PROCESSOR LOG")
             
             # CHỈ CẦN DÒNG NÀY: Nối các chuỗi HTML đã có sẵn trong logs
             log_content = "".join(st.session_state.logs) if st.session_state.logs else "Ready..."
@@ -71,7 +71,7 @@ class AttackCaesar: # Phải có Class này
             )
             # Nút xóa Log bên dưới
             st.write("") # Tạo khoảng cách nhỏ
-            if st.button("Xóa Log", use_container_width=True):
+            if st.button("Xóa Log & Dữ Liệu", use_container_width=True):
                 st.session_state.logs = []
                 st.session_state.current_result = ""
                 st.rerun()

@@ -30,7 +30,7 @@ class CryptoView:
             if uploaded_file:
                 input_data = uploaded_file.read().decode("utf-8")
             
-            input_text = st.text_area("Nhập văn bản cần xử lý:", value=input_data, height=150)
+            input_text = st.text_area("📋 Nhập văn bản cần xử lý:", value=input_data, height=150)
 
             # 2. THAM SỐ ĐỘNG
             st.write("### ⚙️ Tham số")
@@ -76,14 +76,14 @@ class CryptoView:
                         </div>
                     """, unsafe_allow_html=True)
                 elif self.algo_name == "Vigenère":
-                    params['vigenere_key'] = st.text_input("Từ khóa (Key):", placeholder="Ví dụ: VIETANH", type="password")
+                    params['vigenere_key'] = st.text_input("📍 Từ khóa (Key):", placeholder="Ví dụ: VIETANH", type="password")
                 elif self.algo_name == "RSA":
                     c1, c2 = st.columns(2)
                     with c1:
-                        params['p_key'] = st.text_input("Số nguyên tố p:", type="password")
-                        params['q_key'] = st.text_input("Số nguyên tố q:", type="password")
+                        params['p_key'] = st.text_input("📍 Số nguyên tố p:", type="password")
+                        params['q_key'] = st.text_input("📍 Số nguyên tố q:", type="password")
                     with c2:
-                        params['e_key'] = st.text_input("Số e (Public):", value="65537", type="password")
+                        params['e_key'] = st.text_input("📍 Số e (Public):", value="65537", type="password")
                         
                         # --- Gợi ý số nguyên tố ---
                         import os
@@ -108,13 +108,13 @@ class CryptoView:
                                         
                                         # Sử dụng text_input nhưng khóa lại (disabled) để tạo giao diện đồng nhất
                                         st.text_input(
-                                            label="Gợi ý (p, q):", 
+                                            label="📍 Gợi ý (p, q):", 
                                             value=primes_str, 
                                             label_visibility="visible"
                                         )
 
                                     with col_btn:
-                                        if st.button("🔄", help="Đổi số gợi ý"):
+                                        if st.button("🔄", help="Đổi số gợi ý",type="tertiary"):
                                             st.session_state.rsa_suggestions = random.sample(all_primes, min(5, len(all_primes)))
                                             st.rerun()
                                 else:
@@ -129,9 +129,9 @@ class CryptoView:
             col_btn1, col_btn2 = st.columns(2)
             action_clicked = None
 
-            if col_btn1.button("🔒 MÃ HÓA", use_container_width=True, type="primary"):
+            if col_btn1.button("🔓 MÃ HÓA", use_container_width=True, type="primary"):
                 action_clicked = "encrypt"
-            if col_btn2.button("🔓 GIẢI MÃ", use_container_width=True):
+            if col_btn2.button("🔑 GIẢI MÃ", use_container_width=True):
                 action_clicked = "decrypt"
 
             if action_clicked:
@@ -172,7 +172,7 @@ class CryptoView:
                 else:
                     st.button("📄 Tải xuống .txt", disabled=True, use_container_width=True)
             # Ô hiển thị văn bản kết quả
-            st.text_area("Văn bản sau xử lý:", value=current_out, height=200)
+            st.text_area(" 📤 Văn bản sau xử lý:", value=current_out, height=200)
 
         with right_col:
             st.markdown("### 🖥️ PROCESSOR LOG")
@@ -205,7 +205,7 @@ class CryptoView:
                 st.info("Chưa có tiến trình chi tiết.")
 
             # Nút xóa log
-            if st.button("Xóa Log", use_container_width=True):
+            if st.button("Xóa Log & Dữ Liệu", use_container_width=True):
                 st.session_state.segmented_logs = []
                 st.rerun()
 

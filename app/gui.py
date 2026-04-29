@@ -18,30 +18,30 @@ class CryptoGui:
 
     def create_menu(self):
         with st.sidebar:
-            st.markdown("## 🛡️ CRYPTO ENGINE")
+            st.markdown("## 🛡️ CRYPTO MENU")
             
-            if st.button("🏠 Giới thiệu", use_container_width=True, icon="🏠"):
+            if st.button("Giới thiệu", use_container_width=True, icon="🏠"):
                 self.show_welcome()
             st.write("---")
             st.markdown("### ⚡ Hệ mật")
             
-            if st.button("🔒 Hệ mật Caesar", use_container_width=True, icon="🔒"):
+            if st.button("🔏 Hệ mật Caesar", use_container_width=True):
                 self.show_crypto_ui("Caesar")
                 
-            if st.button("🔐 Hệ mật Vigenère", use_container_width=True, icon="🔐"):
+            if st.button("🔏 Hệ mật Vigenère", use_container_width=True):
                 self.show_crypto_ui("Vigenère")
                 
-            if st.button("🔑 Hệ mật RSA", use_container_width=True, icon="🔑"):
+            if st.button("🔏 Hệ mật RSA", use_container_width=True):
                 self.show_crypto_ui("RSA")
             
             st.write("---")
             st.markdown("### ⚡ Thám mã")
             
             # Sửa lại ở đây: gọi cụ thể từng view mới
-            if st.button("⚡ Thám mã Caesar", use_container_width=True):
+            if st.button("🔐 Thám mã Caesar", use_container_width=True):
                 self.show_attack_caesar()
 
-            if st.button("⚡ Thám mã Vigenère", use_container_width=True):
+            if st.button("🔐 Thám mã Vigenère", use_container_width=True):
                 self.show_attack_vigenere()
 
     # --- Các hàm điều hướng mới ---

@@ -38,7 +38,7 @@ class AttackVigenere: # Phải có Class này
             if uploaded_file is not None:
                 default_text = uploaded_file.read().decode("utf-8")
             
-            input_ciphertext = st.text_area("Bản mã đầu vào (Ciphertext):", 
+            input_ciphertext = st.text_area("📋 Bản mã đầu vào (Ciphertext):", 
                                             value=default_text, 
                                             height=150)
 
@@ -64,7 +64,7 @@ class AttackVigenere: # Phải có Class này
                 else:
                     st.info("Chưa có kết quả phân tích.")
         with right_col:
-            st.markdown("### 🖥️ SYSTEM LOG")
+            st.markdown("### 🖥️ PROCESSOR LOG")
             
             # --- PHẦN 1: TERMINAL LOG (Quá trình thám mã) ---
             log_content = "".join(st.session_state.logs) if st.session_state.logs else "Ready..."

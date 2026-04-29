@@ -41,7 +41,7 @@ class HomeView:
             """, unsafe_allow_html=True)
 
 
-        st.subheader("🛠️ Explore Cryptography Modules")
+        st.subheader("Cryptography Modules")
 
         # --- MODULE 1: CAESAR CIPHER ---
         with st.expander("🔑 **1. Caesar Cipher (Mật mã Caesar)**"):
@@ -55,7 +55,7 @@ class HomeView:
             st.markdown('<div class="how-it-works"><b>Ví dụ:</b> Với k=3, "A" trở thành "D", "B" trở thành "E".</div>', unsafe_allow_html=True)
 
         # --- MODULE 2: VIGENERE CIPHER ---
-        with st.expander("🗝️ **2. Vigenère Cipher (Mật mã Vigenère)**"):
+        with st.expander("🔑 **2. Vigenère Cipher (Mật mã Vigenère)**"):
             st.info("**Category:** Polyalphabetic Substitution")
             st.markdown("""
             **Cách hoạt động:**
@@ -67,7 +67,7 @@ class HomeView:
             st.markdown('<div class="how-it-works"><b>Ưu điểm:</b> Chống lại việc thám mã dựa trên tần suất chữ cái đơn giản.</div>', unsafe_allow_html=True)
 
         # --- MODULE 3: RSA ALGORITHM ---
-        with st.expander("🧬 **3. RSA Algorithm (Hệ mật mã khóa công khai)**"):
+        with st.expander("🔑 **3. RSA Algorithm (Hệ mật mã khóa công khai)**"):
             st.info("**Category:** Asymmetric Encryption")
             st.markdown("""
             **Cách hoạt động:**
@@ -90,7 +90,7 @@ class HomeView:
             """)
 
         # --- MODULE 5: VIGENERE CRYPTANALYSIS ---
-        with st.expander("🕵️ **5. Vigenère Cryptanalysis (Thám mã Vigenère)**"):
+        with st.expander("🔍 **5. Vigenère Cryptanalysis (Thám mã Vigenère)**"):
             st.info("**Method:** Kasiski Examination / Friedman Test")
             st.markdown("""
             **Cách hoạt động:**
@@ -109,9 +109,9 @@ class HomeView:
                 st.markdown("⚖️ **License**")
                 st.caption("Open-sourced under the **Apache License 2.0**.")
             with col_info2:
-                st.markdown("🔐 **Privacy First**")
+                st.markdown("⚠️ **Privacy First**")
                 st.caption("Zero data collection. Processing happens entirely in RAM.")
-                st.markdown("⚠️ **Notice**")
+                st.markdown("🤖 **Notice**")
                 st.caption("Third-party cloud; avoid uploading sensitive personal data.")
             
             st.markdown(
