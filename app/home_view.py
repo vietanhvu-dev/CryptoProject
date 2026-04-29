@@ -35,20 +35,6 @@ class HomeView:
         with st.container():
             st.markdown(f"""
                 <div class="home-container">
-                    <svg width="400" height="180" viewBox="0 0 500 250" style="max-width: 100%;">
-                        <circle cx="85" cy="115" r="35" fill="#1f538d" />
-                        <text x="85" y="175" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Alice</text>
-                        <circle cx="415" cy="115" r="35" fill="#1f538d" />
-                        <text x="415" y="175" font-family="Segoe UI" font-size="14" font-weight="bold" fill="#1f538d" text-anchor="middle">Bob</text>
-                        <defs>
-                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" fill="#adb5bd" />
-                            </marker>
-                        </defs>
-                        <line x1="130" y1="115" x2="360" y2="115" stroke="#adb5bd" stroke-width="3" marker-end="url(#arrowhead)" />
-                        <rect x="230" y="125" width="40" height="30" fill="#fcc419" />
-                        <circle cx="250" cy="125" r="10" fill="none" stroke="#fcc419" stroke-width="3" />
-                    </svg>
                     <h1 style='color: #1f538d; margin-top: 10px;'>CRYPTO SYSTEM DEMO PLATFORM</h1>
                     <p style='color: #495057; font-size: 1.1rem;'>Vũ Việt Anh | Trần Sỹ Toàn</p>
                 </div>
