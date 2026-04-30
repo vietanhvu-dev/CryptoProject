@@ -117,7 +117,7 @@ class HomeView:
             st.markdown(
                 """
                 <div style="background-color: #f8f9fa; padding: 10px; border-left: 5px solid #1f538d; border-radius: 5px; margin-top: 10px;">
-                    <small>For full terms, visit <a href="https://github.com/vietanhvu-dev/CryptoProject/blob/master/SECURITY.md" target="_blank">Security Policy</a></small>
+                    <small>For full terms, visit <a href="https://github.com/" target="_blank">Security Policy</a></small>
                 </div>
                 """, unsafe_allow_html=True)
 

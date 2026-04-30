@@ -92,7 +92,7 @@ class VigenereCracker:
                 # Đảm bảo mỗi dòng log kết thúc bằng một dấu xuống dòng thực thụ
                 log_callback(str(msg) + "\n")
 
-        emit("🔍 BẮT ĐẦU QUÁ TRÌNH THÁM MÃ ..")
+        emit("🔍 BẮT ĐẦU THÁM MÃ ..")
         
         clean_text = "".join(filter(str.isalpha, ciphertext.upper()))
         if not clean_text:

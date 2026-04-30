@@ -9,17 +9,27 @@ from app.gui import CryptoGui
 
 class MainApp:
     def __init__(self):
-        # 1. Thiết lập cấu hình trang (Luôn phải là lệnh đầu tiên)
+        # 1. Thiết lập cấu hình trang
         st.set_page_config(
             page_title="Cryptosystem Demo Platform",
             layout="wide",
             initial_sidebar_state="expanded",
             menu_items={
                 'Get Help': 'https://www.extremely-helpful-docs.com',
-                'Report a bug': "https://github.com/vietanhvu-dev/CryptoProject/issues",
-                'About': "# Web-App \nĐây là ứng dụng demo các hệ mật mã cổ điển và khóa công khai."
+                # Thay link GitHub bằng link tài liệu hoặc None
+                'Report a bug': "https://www.extremely-helpful-docs.com",
+                'About': "# CRYPTO SYSTEM PLATFORM \nThis is a demo platform for classical cryptography and public key systems."
             }
         )
+
+        # 2. Dùng CSS để ẩn Footer, Header và Menu ba chấm
+        st.markdown("""
+            <style>
+                /* Ẩn dòng chữ 'Made with Streamlit' ở cuối trang */
+                footer {visibility: hidden;}
+
+            </style>
+        """, unsafe_allow_html=True)
 
         # 2. HIỆU ỨNG MỞ MÀN (SPLASH SCREEN) VÀ CSS GIAO DIỆN
         st.markdown("""
