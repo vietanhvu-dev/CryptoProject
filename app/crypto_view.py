@@ -78,54 +78,139 @@ class CryptoView:
                 elif self.algo_name == "Vigenère":
                     params['vigenere_key'] = st.text_input("📍 Từ khóa (Key):", placeholder="Ví dụ: VIETANH", type="password")
                 elif self.algo_name == "RSA":
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        params['p_key'] = st.text_input("📍 Số nguyên tố p:", type="password")
-                        params['q_key'] = st.text_input("📍 Số nguyên tố q:", type="password")
-                    with c2:
-                        params['e_key'] = st.text_input("📍 Số e (Public):", value="65537", type="password")
-                        
-                        # --- Gợi ý số nguyên tố ---
-                        import os
-                        import random
-                        try:
-                            file_path = os.path.join("app", "primes.txt")
+    # Chia giao diện thành 2 Tab chính
+                    tab_setup, tab_process = st.tabs(["🔑 Tab 1: Thiết lập & Sinh khóa", "⚙️ Tab 2: Thực thi RSA"])
+
+                    with tab_setup:
+                        st.subheader("Cấu hình tham số gốc (p, q, e)")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            params['p_key'] = st.text_input("📍 Số nguyên tố p:", type="password", key="rsa_p_input")
+                            params['q_key'] = st.text_input("📍 Số nguyên tố q:", type="password", key="rsa_q_input")
+                        with c2:
+                            params['e_key'] = st.text_input("📍 Số e (Public):", value="65537", type="password", key="rsa_e_input")
                             
-                            if os.path.exists(file_path):
-                                with open(file_path, "r") as f:
-                                    # Đọc từng dòng, strip khoảng trắng và chỉ lấy các số > 100
-                                    all_primes = [line.strip() for line in f if line.strip() and int(line.strip()) > 100]
-                                
-                                if all_primes:
-                                    if 'rsa_suggestions' not in st.session_state:
-                                        st.session_state.rsa_suggestions = random.sample(all_primes, min(5, len(all_primes)))
+                            # --- Gợi ý số nguyên tố (Logic giữ nguyên của bạn) ---
+                            import os
+                            import random
 
-                                    # Tạo 2 cột nhỏ để hiển thị ngang hàng
-                                    col_text, col_btn = st.columns([0.85, 0.15])
+                            @st.cache_data
+                            def load_primes():
+                                file_path = os.path.join("app", "primes.txt")
+                                if os.path.exists(file_path):
+                                    with open(file_path, "r") as f:
+                                        return [line.strip() for line in f if line.strip() and int(line.strip()) > 100]
+                                return []
 
-                                    with col_text:
-                                        primes_str = "  |  ".join(st.session_state.rsa_suggestions)
-                                        
-                                        # Sử dụng text_input nhưng khóa lại (disabled) để tạo giao diện đồng nhất
-                                        st.text_input(
-                                            label="📍 Gợi ý (p, q):", 
-                                            value=primes_str, 
-                                            label_visibility="visible"
-                                        )
+                            all_primes = load_primes()
 
-                                    with col_btn:
-                                        if st.button("🔄", help="Đổi số gợi ý",type="tertiary"):
-                                            st.session_state.rsa_suggestions = random.sample(all_primes, min(5, len(all_primes)))
-                                            st.rerun()
-                                else:
-                                    st.caption("*(File primes.txt trống hoặc không chứa số hợp lệ)*")
-                            else:
-                                st.caption(f"*(Không tìm thấy file tại: {file_path})*")
+                            if all_primes:
+                                if 'rsa_suggestions' not in st.session_state or not st.session_state.rsa_suggestions:
+                                    st.session_state.rsa_suggestions = random.sample(all_primes, min(5, len(all_primes)))
+
+                                col_text, col_btn = st.columns([0.85, 0.15])
+
+                                with col_text:
+                                    primes_str = "  |  ".join(st.session_state.rsa_suggestions)
+                                    st.text_input(
+                                        "📍 Gợi ý (p, q):",
+                                        value=primes_str,
+                                    )
+
+                                with col_btn:
+                                    if st.button("🔄", type="tertiary", help="Gợi ý mới"):
+                                        new_sample = random.sample(all_primes, min(5, len(all_primes)))
+                                        while new_sample == st.session_state.rsa_suggestions and len(all_primes) > 5:
+                                            new_sample = random.sample(all_primes, 5)
+
+                                        st.session_state.rsa_suggestions = new_sample
+
+                        # Nút để kích hoạt việc sinh khóa
+                        if st.button("🚀 Sinh Khóa ", use_container_width=True):
+                            if params['p_key'] and params['q_key']:
+                                try:
+                                    p = int(params['p_key'])
+                                    q = int(params['q_key'])
+                                    e = int(params['e_key'])
                                     
-                        except Exception as e:
-                            st.caption(f"*(Lỗi đọc file: {str(e)})*")
+                                    from core.public_key.rsa_core import rsa_generate_keys
+                                    key_data, error_logs = rsa_generate_keys(p, q, e)
+                                    
+                                    if key_data:
+                                        # 1. Lưu bộ khóa vào session_state
+                                        st.session_state['rsa_key_data'] = key_data
+                                        
+                                        # 2. Lấy log từ trong dict key_data (vì hàm của bạn trả về logs ở đó)
+                                        st.session_state['rsa_key_logs'] = key_data.get('logs', [])
+                                        
+                                        # 3. QUAN TRỌNG: Xóa các key của widget ở Tab 2 để chúng cập nhật value mới
+                                        for k in ["rsa_n_exec", "rsa_e_exec", "rsa_d_exec"]:
+                                            if k in st.session_state:
+                                                del st.session_state[k]
+                                        
+                                        st.success("✅ Đã tạo khóa thành công! Chuyển sang Tab 2 để thực thi.")
+                                        st.rerun() # Làm mới lại để Tab 2 nhận dữ liệu ngay lập tức
+                                    else:
+                                        # Nếu thất bại, lấy logs từ biến error_logs (giá trị thứ 2 trả về)
+                                        st.session_state['rsa_key_logs'] = error_logs
+                                        if error_logs:
+                                            st.error(error_logs[0].get('content', 'Lỗi không xác định'))
+                                except ValueError:
+                                    st.error("❌ Vui lòng nhập số hợp lệ cho p, q, e.")
+                            else:
+                                st.warning("⚠️ Hãy nhập đủ p và q.")
 
-            # 3. NÚT BẤM THỰC THI
+                        # --- Phần hiển thị Log (Giữ nguyên logic của bạn nhưng thêm bọc Expander cho gọn) ---
+                        if st.session_state.get('rsa_key_logs'):
+                            with st.expander("📝 Chi tiết quá trình sinh khóa", expanded=False):
+                                for log in st.session_state['rsa_key_logs']:
+                                    content = log.get('content', '') if isinstance(log, dict) else str(log)
+                                    # Trang trí một chút cho dễ nhìn
+                                    if "✔" in content:
+                                        st.markdown(f":green[{content}]")
+                                    elif "Lỗi" in content:
+                                        st.markdown(f":red[{content}]")
+                                    else:
+                                        st.text(content)
+
+                    with tab_process:
+                        st.subheader("⚙️ Cấu hình tham số thực thi")
+                        
+                        # Lấy dữ liệu nguồn từ Tab 1
+                        k_source = st.session_state.get('rsa_key_data', {})
+                        
+                        # NÚT BẤM CẬP NHẬT
+                        if k_source:
+                            if st.button("📥 Lấy cặp khóa từ Tab 1", use_container_width=True):
+                                # Ép giá trị của Widget bằng cách ghi đè trực tiếp vào Session State của Key đó
+                                st.session_state["rsa_n_exec_field"] = str(k_source.get('n', ''))
+                                st.session_state["rsa_e_exec_field"] = str(k_source.get('e', ''))
+                                st.session_state["rsa_d_exec_field"] = str(k_source.get('d', ''))
+                                st.rerun()
+
+                        col_n, col_e, col_d = st.columns(3)
+                        
+                        with col_n:
+                            params['n_exec'] = st.text_input(
+                                "📍 Modulus (n):", 
+                                key="rsa_n_exec_field", # Key này phải trùng với key bị ghi đè ở trên
+                                type="password"
+                            )
+                            
+                        with col_e:
+                            params['e_exec'] = st.text_input(
+                                "📢 Public Exponent (e):", 
+                                key="rsa_e_exec_field",
+                                type="password"
+                            )
+
+                        with col_d:
+                            params['d_exec'] = st.text_input(
+                                "🔐 Private Exponent (d):", 
+                                key="rsa_d_exec_field",
+                                type="password"
+                            )
+    # 3. NÚT BẤM THỰC THI
             col_btn1, col_btn2 = st.columns(2)
             action_clicked = None
 
@@ -240,25 +325,34 @@ class CryptoView:
                 return res
             except Exception as e:
                 st.error(f"Lỗi Vigenère: {e}")
+                return ""
         elif algo_name == "RSA":
             try:
-                p = int(params.get('p_key', 0))
-                q = int(params.get('q_key', 0))
-                e = int(params.get('e_key', 65537))
+                # Lấy trực tiếp n và e từ các ô nhập liệu ở Tab 2
+                n = params.get('n_exec', '').strip()
+                e = params.get('e_exec', '').strip()
                 
-                from core.public_key.rsa_core import rsa_cipher_segmented
-                res, logs = rsa_cipher_segmented(text, p, q, e, mode='encrypt')
+                if not n or not e:
+                    st.error("❌ Thiếu thông số Modulus (n) hoặc Public Exponent (e) để mã hóa!")
+                    return ""
                 
-                if res is None: # Trường hợp e không hợp lệ
-                    st.error(logs[0]['content'])
+                # Ép kiểu sang int để tính toán
+                n = int(n)
+                e = int(e)
+                
+                from core.public_key.rsa_core import rsa_process_segmented
+                # Lưu ý: Truyền n và e vào hàm xử lý. 
+                res, logs = rsa_process_segmented(text, n, e, mode='encrypt')
+                
+                if res is None:
+                    st.error(logs[0]['content'] if logs else "Lỗi mã hóa RSA")
                     return ""
                     
                 st.session_state.segmented_logs = logs
                 return res
             except ValueError:
-                st.error("p, q, e phải là số nguyên!")
-        return ""
-        
+                st.error("❌ Modulus (n) và Public Exponent (e) phải là số nguyên!")
+                return ""        
 
     def handle_decrypt(self, algo_name, text, params):
         if algo_name == "Caesar":
@@ -281,16 +375,29 @@ class CryptoView:
             st.session_state.segmented_logs = logs
             return res
         elif algo_name == "RSA":
-            p = int(params.get('p_key', 0))
-            q = int(params.get('q_key', 0))
-            e = int(params.get('e_key', 65537))
-            
-            from core.public_key.rsa_core import rsa_cipher_segmented
-            res, logs = rsa_cipher_segmented(text, p, q, e, mode='decrypt')
-            
-            if res is None:
-                st.error(logs[0]['content'])
-                return ""
+            try:
+                # Lấy trực tiếp n và d từ các ô nhập liệu ở Tab 2
+                n = params.get('n_exec', '').strip()
+                d = params.get('d_exec', '').strip()
                 
-            st.session_state.segmented_logs = logs
-            return res
+                if not n or not d:
+                    st.error("❌ Thiếu thông số Modulus (n) hoặc Private Exponent (d) để giải mã!")
+                    return ""
+                
+                # Ép kiểu sang int
+                n = int(n)
+                d = int(d)
+                
+                from core.public_key.rsa_core import rsa_process_segmented
+                # Giải mã sử dụng n và d
+                res, logs = rsa_process_segmented(text, n, d, mode='decrypt')
+                
+                if res is None:
+                    st.error(logs[0]['content'] if logs else "Lỗi giải mã RSA")
+                    return ""
+                    
+                st.session_state.segmented_logs = logs
+                return res
+            except ValueError:
+                st.error("❌ Modulus (n) và Private Exponent (d) phải là số nguyên!")
+                return ""

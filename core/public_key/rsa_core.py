@@ -1,79 +1,114 @@
-# core/public_key/rsa_core.py
 from utils.math_helpers import is_prime, gcd, mod_inverse
-def rsa_cipher_segmented(text, p, q, e, mode='encrypt'):
+
+def rsa_generate_keys(p, q, e):
     """
-    Xử lý RSA và trả về (Kết quả, Danh sách log phân đoạn).
+    BƯỚC 1: Sinh khóa RSA + log dạng list dict cho UI
     """
-    segmented_logs = []
-    step1_logs = []
-    
-    # --- BƯỚC 1: KHỞI TẠO HỆ THỐNG (Luôn ghi vào log đầu tiên) ---
-    step1_logs.append("--- BƯỚC 1: KHỞI TẠO THÔNG SỐ RSA ---")
+    logs = []
+    logs.append({"content": "--- BƯỚC 1: KHỞI TẠO THÔNG SỐ RSA ---"})
+
+    # --- VALIDATION ---
+    if not isinstance(p, int) or not isinstance(q, int) or not isinstance(e, int):
+        return None, [{"content": "Lỗi: p, q, e phải là số nguyên!"}]
+
+    if p <= 1 or q <= 1:
+        return None, [{"content": "Lỗi: p và q phải > 1!"}]
+
+    if not is_prime(p):
+        return None, [{"content": f"Lỗi: p = {p} không phải số nguyên tố!"}]
+
+    if not is_prime(q):
+        return None, [{"content": f"Lỗi: q = {q} không phải số nguyên tố!"}]
+
+    if p == q:
+        return None, [{"content": "Lỗi: p và q không được trùng nhau!"}]
+
+    logs.append({"content": f"✔ p = {p} là số nguyên tố"})
+    logs.append({"content": f"✔ q = {q} là số nguyên tố"})
+
+    # --- TÍNH TOÁN ---
     n = p * q
     phi = (p - 1) * (q - 1)
-    
-    step1_logs.append(f"1. Số nguyên tố: p = {p}, q = {q}")
-    step1_logs.append(f"2. Tính n = p * q = {n}")
-    step1_logs.append(f"3. Tính Phi(n) = (p-1)*(q-1) = {phi}")
-    step1_logs.append(f"4. Số công khai e: {e}")
-    
-    # Kiểm tra e hợp lệ
+
+    logs.append({"content": f"1. n = p * q = {n}"})
+    logs.append({"content": f"2. Phi(n) = (p-1)*(q-1) = {phi}"})
+    logs.append({"content": f"3. e = {e}"})
+
+    # --- CHECK e ---
+    if e <= 1 or e >= phi:
+        return None, [{"content": f"Lỗi: e phải nằm trong (1, Phi(n))!"}]
+
     if gcd(e, phi) != 1:
-        return None, [{"title": "Lỗi", "content": f"e={e} và Phi(n)={phi} không nguyên tố cùng nhau!"}]
-    
-    # Tính d (Private Key)
-    d = mod_inverse(e, phi)
-    step1_logs.append(f"5. Tính d (Số nghịch đảo modulo e mod Phi(n)): {d}")
-    step1_logs.append(f"\n=> PUBLIC KEY: (n={n}, e={e})")
-    step1_logs.append(f"=> PRIVATE KEY: (n={n}, d={d})")
-    
-    segmented_logs.append({
-        "title": "🔐 Bước 1: Khởi tạo và Tính toán Khóa",
-        "content": "\n".join(step1_logs)
-    })
+        return None, [{"content": f"Lỗi: e={e} và Phi(n)={phi} không nguyên tố cùng nhau!"}]
 
-    # --- BƯỚC 2: XỬ LÝ DỮ LIỆU ---
-    process_logs = []
-    process_logs.append(f"--- BƯỚC 2: {'MÃ HÓA' if mode == 'encrypt' else 'GIẢI MÃ'} DỮ LIỆU ---")
+    logs.append({"content": "✔ e hợp lệ với Phi(n)"})
+
+    # --- TÍNH d ---
+    try:
+        d = mod_inverse(e, phi)
+
+        logs.append({"content": f"4. d = e^(-1) mod Phi(n) = {d}"})
+        logs.append({"content": f"👉 PUBLIC KEY: (n={n}, e={e})"})
+        logs.append({"content": f"👉 PRIVATE KEY: (n={n}, d={d})"})
+
+        return {
+            "n": n,
+            "e": e,
+            "d": d,
+            "phi": phi,
+            "logs": logs   # 👈 QUAN TRỌNG
+        }, None
+
+    except ValueError:
+        return None, [{"content": "Lỗi: Không tìm được nghịch đảo modulo cho e."}]
     
+def rsa_process_segmented(text, key_n, key_exponent, mode='encrypt'):
+    """
+    BƯỚC 2: Xử lý dữ liệu và trả về Log chia nhỏ theo mốc ký tự.
+    """
+    segmented_logs = []
+    current_batch = []
     result_data = []
+    milestones = [50, 100, 200] # Giống logic Vigenere
     
-    if mode == 'encrypt':
-        # Mã hóa: C = M^e mod n
-        process_logs.append("Công thức: Cipher = (Plaintext_ASCII)^e mod n\n")
-        for i, char in enumerate(text):
-            m = ord(char)
-            c = pow(m, e, n)
-            result_data.append(str(c))
-            if i < 20: # Chỉ log 20 ký tự đầu để tránh quá tải
-                process_logs.append(f"{i+1:03d}: '{char}' (ASCII: {m}) -> {m}^{e} mod {n} = {c}")
-        
-        final_result = " ".join(result_data) # Kết quả RSA thường là dãy số cách nhau
-        
-    else:
-        # Giải mã: M = C^d mod n
-        process_logs.append("Công thức: Plaintext = (Cipher_Value)^d mod n\n")
-        # Giả định đầu vào giải mã là dãy số cách nhau bởi dấu cách
+    process_title = "MÃ HÓA" if mode == 'encrypt' else "GIẢI MÃ"
+    formula = "C = M^e mod n" if mode == 'encrypt' else "M = C^d mod n"
+    
+    # Chuẩn bị dữ liệu đầu vào
+    items = text.strip().split() if mode == 'decrypt' else list(text)
+    
+    for i, item in enumerate(items):
         try:
-            cipher_values = text.strip().split()
-            for i, val in enumerate(cipher_values):
-                c = int(val)
-                m = pow(c, d, n)
-                res_char = chr(m)
+            if mode == 'encrypt':
+                m = ord(item)
+                res_val = pow(m, key_exponent, key_n)
+                result_data.append(str(res_val))
+                log_entry = f"Ký tự {i+1}: '{item}' (ASCII: {m}) -> {m}^{key_exponent} mod {key_n} = {res_val}"
+            else:
+                c = int(item)
+                res_val = pow(c, key_exponent, key_n)
+                res_char = chr(res_val)
                 result_data.append(res_char)
-                if i < 20:
-                    process_logs.append(f"{i+1:03d}: {c} -> {c}^{d} mod {n} = {m} (Char: '{res_char}')")
+                log_entry = f"Khối {i+1}: {c} -> {c}^{key_exponent} mod {key_n} = {res_val} (Ký tự: '{res_char}')"
             
-            final_result = "".join(result_data)
-        except Exception as err:
-            return None, [{"title": "Lỗi", "content": f"Dữ liệu giải mã không hợp lệ: {err}"}]
+            current_batch.append(log_entry)
+        except Exception as e:
+            current_batch.append(f"Dòng {i+1}: Lỗi xử lý ({str(e)})")
 
-    if len(text) > 20:
-        process_logs.append(f"\n... và {len(text)-20} ký tự khác.")
+        # Chia nhỏ log theo mốc
+        curr_count = i + 1
+        if curr_count in milestones:
+            segmented_logs.append({
+                "title": f"⚙️ Chi tiết {process_title} ({curr_count} ký tự đầu)",
+                "content": f"Công thức dùng: {formula}\n" + "-"*40 + "\n" + "\n".join(current_batch)
+            })
 
-    segmented_logs.append({
-        "title": f"⚙️ Bước 2: Quá trình xử lý {mode.upper()}",
-        "content": "\n".join(process_logs)
-    })
+    # Log đoạn cuối
+    if not segmented_logs or len(items) > (milestones[-1] if milestones else 0):
+        segmented_logs.append({
+            "title": f"⚙️ Chi tiết {process_title} (Đoạn cuối)",
+            "content": f"Tổng số thực hiện: {len(items)}\n" + "-"*40 + "\n" + "\n".join(current_batch)
+        })
 
+    final_result = " ".join(result_data) if mode == 'encrypt' else "".join(result_data)
     return final_result, segmented_logs
