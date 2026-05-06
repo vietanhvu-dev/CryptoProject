@@ -17,7 +17,33 @@ class CryptoView:
         if 'current_result' not in st.session_state:
             st.session_state.current_result = ""
         st.markdown(f"<h1 style='color: #1f538d;'>Hệ mật: {self.algo_name}</h1>", unsafe_allow_html=True)
-        
+        st.markdown("""
+            <style>
+                /* 1. Phóng to và làm đậm tiêu đề Tab */
+                button[data-baseweb="tab"] {
+                    height: 60px !important; /* Tăng chiều cao Tab */
+                }
+                
+                button[data-baseweb="tab"] div {
+                    font-size: 22px !important; /* Chỉnh cỡ chữ to hẳn lên */
+                    font-weight: 800 !important; /* Độ đậm cực đại */
+                    font-family: 'Source Sans Pro', sans-serif !important;
+                }
+
+                /* 2. Hiệu ứng khi Hover (di chuột qua) */
+                button[data-baseweb="tab"]:hover {
+                    color: #1f538d !important;
+                    background-color: rgba(31, 83, 141, 0.05) !important;
+                    transition: 0.3s;
+                }
+
+                /* 3. Style riêng cho Tab đang được chọn (Active) */
+                button[data-baseweb="tab"][aria-selected="true"] {
+                    border-bottom: 4px solid #1f538d !important; /* Đường kẻ dưới chân đậm hơn */
+                    background-color: rgba(31, 83, 141, 0.1) !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
         # Chia cột chính (Trái: Xử lý | Phải: Log)
         left_col, right_col = st.columns([3, 2])
 
@@ -82,10 +108,9 @@ class CryptoView:
                     params['vigenere_key'] = st.text_input("📍 Từ khóa (Key):", placeholder="Ví dụ: VIETANH", type="password")
                 elif self.algo_name == "RSA":
     # Chia giao diện thành 2 Tab chính
-                    tab_setup, tab_process = st.tabs(["🔑 Thiết lập & Sinh khóa", "⚙️ Thực thi RSA"])
+                    tab_setup, tab_process = st.tabs(["🔑 Thiết lập khóa từ p, q, e", "⚙️ Thực thi RSA"])
 
                     with tab_setup:
-                        st.subheader("🔑Cấu hình tham số gốc (p, q, e)")
                         c1, c2 = st.columns(2)
                         with c1:
                             params['p_key'] = st.text_input("📍 Số nguyên tố p:", type="password", key="rsa_p_input")
@@ -192,8 +217,7 @@ class CryptoView:
                                         st.text(content)
 
                     with tab_process:
-                        st.subheader("⚙️ Cấu hình tham số thực thi")
-                        
+                        st.markdown("<p style='font-size: 18px; font-weight: bold; margin-bottom: 5px;'>⚙️ Cấu hình tham số thực thi</p>", unsafe_allow_html=True)
                         # Lấy dữ liệu nguồn từ Tab 1
                         k_source = st.session_state.get('rsa_key_data', {})
                         
