@@ -5,7 +5,7 @@ def rsa_generate_keys(p, q, e):
     BƯỚC 1: Sinh khóa RSA + log dạng list dict cho UI
     """
     logs = []
-    logs.append({"content": "--- BƯỚC 1: KHỞI TẠO THÔNG SỐ RSA ---"})
+    logs.append({"content": "BƯỚC 1: KHỞI TẠO THÔNG SỐ"})
 
     # --- VALIDATION ---
     if not isinstance(p, int) or not isinstance(q, int) or not isinstance(e, int):

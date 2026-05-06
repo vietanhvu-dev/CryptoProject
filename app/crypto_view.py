@@ -17,7 +17,7 @@ class CryptoView:
         if 'current_result' not in st.session_state:
             st.session_state.current_result = ""
         st.markdown(f"<h1 style='color: #1f538d;'>Hệ mật: {self.algo_name}</h1>", unsafe_allow_html=True)
-
+        
         # Chia cột chính (Trái: Xử lý | Phải: Log)
         left_col, right_col = st.columns([3, 2])
 
@@ -31,13 +31,16 @@ class CryptoView:
                 input_data = uploaded_file.read().decode("utf-8")
             
             input_text = st.text_area("📋 Nhập văn bản cần xử lý:", value=input_data, height=150)
-
             # 2. THAM SỐ ĐỘNG
-            st.write("### ⚙️ Tham số")
             params = {}
+
+            # Nếu KHÔNG PHẢI RSA thì hiện tiêu đề và info kiểu cũ
+            if self.algo_name != "RSA":
+                st.write("### ⚙️ Tham số")
             
             with st.container():
-                st.info("Nhập các khóa bảo mật bên dưới")
+                if self.algo_name != "RSA":
+                    st.info("Nhập các khóa bảo mật bên dưới")
                 if self.algo_name == "Caesar":
                     params['shift_key'] = st.text_input("**🔑 Độ dịch (Shift):**", placeholder="Ví dụ: 3")
                     
@@ -79,10 +82,10 @@ class CryptoView:
                     params['vigenere_key'] = st.text_input("📍 Từ khóa (Key):", placeholder="Ví dụ: VIETANH", type="password")
                 elif self.algo_name == "RSA":
     # Chia giao diện thành 2 Tab chính
-                    tab_setup, tab_process = st.tabs(["🔑 Tab 1: Thiết lập & Sinh khóa", "⚙️ Tab 2: Thực thi RSA"])
+                    tab_setup, tab_process = st.tabs(["🔑 Thiết lập & Sinh khóa", "⚙️ Thực thi RSA"])
 
                     with tab_setup:
-                        st.subheader("Cấu hình tham số gốc (p, q, e)")
+                        st.subheader("🔑Cấu hình tham số gốc (p, q, e)")
                         c1, c2 = st.columns(2)
                         with c1:
                             params['p_key'] = st.text_input("📍 Số nguyên tố p:", type="password", key="rsa_p_input")
@@ -137,28 +140,43 @@ class CryptoView:
                                     key_data, error_logs = rsa_generate_keys(p, q, e)
                                     
                                     if key_data:
-                                        # 1. Lưu bộ khóa vào session_state
+                                        # 1. Lưu bộ khóa để dùng cho Tab 2
                                         st.session_state['rsa_key_data'] = key_data
                                         
-                                        # 2. Lấy log từ trong dict key_data (vì hàm của bạn trả về logs ở đó)
-                                        st.session_state['rsa_key_logs'] = key_data.get('logs', [])
+                                        # 2. CHUẨN BỊ NỘI DUNG CHO EXPANDER RIÊNG
+                                        rsa_logs_raw = key_data.get('logs', [])
+                                        # Gộp các dòng log thành một chuỗi duy nhất, có thể thêm màu sắc bằng ANSI hoặc ký tự
+                                        full_log_content = ""
+                                        for log in rsa_logs_raw:
+                                            content = log.get('content', '') if isinstance(log, dict) else str(log)
+                                            full_log_content += f"{content}\n"
+
+                                        # 3. ĐẨY VÀO SEGMENTED_LOGS (Nó sẽ tự tạo một Expander mới bên phải)
+                                        new_segment = {
+                                            "title": f"🔑 RSA KEY GENERATION",
+                                            "content": full_log_content.strip()
+                                        }
+                                        # Thêm vào đầu danh sách để Expander này hiện lên trên cùng bên cột phải
+                                        st.session_state.segmented_logs.insert(0, new_segment)
                                         
-                                        # 3. QUAN TRỌNG: Xóa các key của widget ở Tab 2 để chúng cập nhật value mới
-                                        for k in ["rsa_n_exec", "rsa_e_exec", "rsa_d_exec"]:
+                                        # 4. Xóa session cũ của widget để cập nhật giá trị mới
+                                        for k in ["rsa_n_exec_field", "rsa_e_exec_field", "rsa_d_exec_field"]:
                                             if k in st.session_state:
                                                 del st.session_state[k]
                                         
-                                        st.success("✅ Đã tạo khóa thành công! Chuyển sang Tab 2 để thực thi.")
-                                        st.rerun() # Làm mới lại để Tab 2 nhận dữ liệu ngay lập tức
+                                        st.success("✅ Đã tạo khóa! Chi tiết hiện ở Processor Log.")
+                                        st.rerun() 
                                     else:
-                                        # Nếu thất bại, lấy logs từ biến error_logs (giá trị thứ 2 trả về)
-                                        st.session_state['rsa_key_logs'] = error_logs
-                                        if error_logs:
-                                            st.error(error_logs[0].get('content', 'Lỗi không xác định'))
+                                        # Nếu lỗi, cũng tạo một Expander lỗi riêng bên phải
+                                        error_content = "\n".join([log.get('content', '') for log in error_logs])
+                                        st.session_state.segmented_logs.insert(0, {
+                                            "title": "❌ RSA KEY GEN ERROR",
+                                            "content": error_content
+                                        })
+                                        st.rerun()
+
                                 except ValueError:
-                                    st.error("❌ Vui lòng nhập số hợp lệ cho p, q, e.")
-                            else:
-                                st.warning("⚠️ Hãy nhập đủ p và q.")
+                                    st.error("❌ Vui lòng nhập số hợp lệ.")
 
                         # --- Phần hiển thị Log (Giữ nguyên logic của bạn nhưng thêm bọc Expander cho gọn) ---
                         if st.session_state.get('rsa_key_logs'):
@@ -181,7 +199,7 @@ class CryptoView:
                         
                         # NÚT BẤM CẬP NHẬT
                         if k_source:
-                            if st.button("📥 Lấy cặp khóa từ Tab 1", use_container_width=True):
+                            if st.button("📥 Lấy cặp khóa từ Tab bên", use_container_width=True):
                                 # Ép giá trị của Widget bằng cách ghi đè trực tiếp vào Session State của Key đó
                                 st.session_state["rsa_n_exec_field"] = str(k_source.get('n', ''))
                                 st.session_state["rsa_e_exec_field"] = str(k_source.get('e', ''))
